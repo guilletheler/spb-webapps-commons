@@ -16,6 +16,7 @@
 		<hsqldb.version>2.6.1</hsqldb.version>
 		<hibernate.version>5.6.3.Final</hibernate.version>
 		<apache.commons.lang3.version>3.12.0</apache.commons.lang3.version>
+		<apache.commons.collections4.version>4.4</apache.commons.collections4.version>
 		<spring.data.jpa.version>2.6.0</spring.data.jpa.version>
 		<spring.security.core.version>5.6.1</spring.security.core.version>
 		<javax.persistence.api.version>2.2</javax.persistence.api.version>
@@ -49,6 +50,13 @@
 			<groupId>org.apache.commons</groupId>
 			<artifactId>commons-lang3</artifactId>
 			<version>${apache.commons.lang3.version}</version>
+			<scope>provided</scope>
+		</dependency>
+		<!-- https://mvnrepository.com/artifact/org.apache.commons/commons-collections4 -->
+		<dependency>
+			<groupId>org.apache.commons</groupId>
+			<artifactId>commons-collections4</artifactId>
+			<version>${apache.commons.collections4.version}</version>
 			<scope>provided</scope>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/org.springframework.data/spring-data-jpa -->
