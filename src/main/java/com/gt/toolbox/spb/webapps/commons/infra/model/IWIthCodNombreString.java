@@ -9,5 +9,5 @@ package com.gt.toolbox.spb.webapps.commons.infra.model;
  *
  * @author John Doe
  */
-public interface IWIthCodNombreLong extends IWIthCodNombre<Long> {
+public interface IWIthCodNombreString extends IWIthCodNombre<String> {
 }

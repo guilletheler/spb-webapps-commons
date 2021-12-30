@@ -9,10 +9,6 @@ package com.gt.toolbox.spb.webapps.commons.infra.model;
  *
  * @author John Doe
  */
-public interface IWIthCodNombreInteger  {
-    Integer getCodigo();
-    void setCodigo(Integer codigo);
+public interface IWIthCodNombreInteger extends IWIthCodNombre<Integer> {
     
-    String getNombre();
-    void setNombre(String nombre);
 }
