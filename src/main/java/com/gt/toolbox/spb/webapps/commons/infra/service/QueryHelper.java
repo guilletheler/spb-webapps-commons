@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.Collection;
 import java.util.Date;
 import java.util.Map;
 import java.util.Objects;
@@ -22,7 +23,6 @@ import org.springframework.data.jpa.domain.Specification;
 
 import com.gt.toolbox.spb.webapps.commons.infra.utils.Utils;
 
-
 public class QueryHelper {
 
 	public static <T> Specification<T> getFilterSpecification(Map<String, String> filterValues) {
@@ -31,7 +31,7 @@ public class QueryHelper {
 			return buildPredicate(filterValues, root, builder);
 		};
 	}
-
+	
 	public static <T> Predicate buildPredicate(Map<String, String> filterValues, Root<T> root,
 			CriteriaBuilder builder) {
 		Optional<Predicate> predicate = filterValues.entrySet().stream()
@@ -71,11 +71,79 @@ public class QueryHelper {
 
 		Predicate ret = null;
 
+		String[] groupValues = value.split("\\+\\+");
+
+		for (String groupValue : groupValues) {
+			String[] orValues = groupValue.split("\\|\\|");
+
+			Predicate groupPredicate = null;
+
+			for (String orValue : orValues) {
+				// Logger.getLogger(QueryHelper.class.getName()).info("generando OR para " +
+				// orValue);
+
+				String[] andValues = orValue.split("\\&\\&");
+
+				Predicate orPredicate = null;
+
+				for (String andValue : andValues) {
+					// Logger.getLogger(QueryHelper.class.getName()).info("agregando and para " +
+					// andValue);
+					Predicate andPredicate;
+					if (andValue.length() > 1 && andValue.startsWith("'") && andValue.endsWith("'")) {
+						andValue = andValue.substring(1, andValue.length() - 1);
+
+						andPredicate = builder.like(path.get(key).as(String.class),
+								andValue);
+					} else {
+						andPredicate = builder.like(builder.upper(path.get(key).as(String.class)),
+								"%" + andValue.toUpperCase() + "%");
+					}
+
+					if (orPredicate == null) {
+						orPredicate = andPredicate;
+					} else {
+						orPredicate = builder.and(orPredicate, andPredicate);
+					}
+				}
+				if (orPredicate != null) {
+					if (groupPredicate == null) {
+						groupPredicate = orPredicate;
+					} else {
+						groupPredicate = builder.or(groupPredicate, orPredicate);
+					}
+				}
+			}
+
+			if (groupPredicate != null) {
+				if (ret == null) {
+					ret = groupPredicate;
+				} else {
+					ret = builder.and(ret, groupPredicate);
+				}
+			}
+		}
+
+		return ret;
+
+	}
+
+	/**
+	 * NO TERMINADO DEBERÍA BUSCAR EL VALOR DENTRO DE UNA LISTA
+	 * 
+	 * @param builder
+	 * @param path
+	 * @param key
+	 * @param value
+	 * @return
+	 */
+	public Predicate buildCollectionPredicate(CriteriaBuilder builder, Path<?> path, String key, String value) {
+		Predicate ret = null;
+
 		String[] values = value.split("%or%");
 
 		for (String val : values) {
-			Predicate part = builder.like(builder.upper(path.get(key).as(String.class)),
-					"%" + val.toUpperCase() + "%");
+			Predicate part = builder.like(builder.upper(path.get(key).as(String.class)), "%" + val.toUpperCase() + "%");
 			if (ret == null) {
 				ret = part;
 			} else {
@@ -91,13 +159,13 @@ public class QueryHelper {
 		if (Objects.equals(path.get(key).getJavaType(), Date.class)) {
 			if (value.trim().startsWith("-") || value.trim().startsWith(">")) {
 				Date fechaIni = QueryHelper.parseDate(value.trim().substring(1).trim());
-				return Optional.ofNullable(builder.greaterThanOrEqualTo(path.get(key), fechaIni));
+				return Optional.of(builder.greaterThanOrEqualTo(path.get(key), fechaIni));
 			} else if (value.trim().startsWith("<")) {
 				Date fechaFin = QueryHelper.parseDate(value.trim().substring(1).trim());
-				return Optional.ofNullable(builder.lessThanOrEqualTo(path.get(key), fechaFin));
+				return Optional.of(builder.lessThanOrEqualTo(path.get(key), fechaFin));
 			} else if (value.trim().endsWith("-")) {
 				Date fechaFin = QueryHelper.parseDate(value.trim().substring(0, value.trim().length() - 1).trim());
-				return Optional.ofNullable(builder.lessThanOrEqualTo(path.get(key), fechaFin));
+				return Optional.of(builder.lessThanOrEqualTo(path.get(key), fechaFin));
 			} else if (value.trim().contains("-")) {
 				// Supongo un between
 
@@ -117,12 +185,12 @@ public class QueryHelper {
 					fechaFin = QueryHelper.parseDate("01/01/2100");
 				}
 
-				return Optional.ofNullable(builder.between(path.get(key), fechaIni, fechaFin));
+				return Optional.of(builder.between(path.get(key), fechaIni, fechaFin));
 				// return null;
 
 			} else {
 
-				return Optional.ofNullable(builder.like(builder.function("TO_CHAR", String.class, path.get(key),
+				return Optional.of(builder.like(builder.function("TO_CHAR", String.class, path.get(key),
 						builder.literal("dd/MM/yyyy HH24:MI:ss")), "%" + value + "%"));
 
 			}
@@ -138,7 +206,7 @@ public class QueryHelper {
 				|| Objects.equals(path.get(key).getJavaType(), Boolean.class)) {
 			Boolean valor = value.trim().equalsIgnoreCase("s") || value.trim().equalsIgnoreCase("si")
 					|| value.trim().equalsIgnoreCase("t") || value.trim().equalsIgnoreCase("true");
-			return Optional.ofNullable(builder.equal(path.get(key), valor));
+			return Optional.of(builder.equal(path.get(key), valor));
 		}
 		return Optional.empty();
 	}
@@ -148,8 +216,8 @@ public class QueryHelper {
 
 		if (isDecimalClass(path.get(key).getJavaType())) {
 
-//			Logger.getLogger(QueryHelper.class.getName()).log(Level.INFO,
-//					"Generando predicado de decimal para " + value);
+			// Logger.getLogger(QueryHelper.class.getName()).log(Level.INFO,
+			// "Generando predicado de decimal para " + value);
 
 			Double tmpDoubleValue;
 			String tmpString = "";
@@ -158,17 +226,17 @@ public class QueryHelper {
 				if (value.startsWith("0") || value.startsWith("=")) {
 					tmpString = value.substring(1).trim().replace(",", ".");
 					tmpDoubleValue = Double.valueOf(tmpString);
-					return Optional.ofNullable(builder.equal(path.get(key), tmpDoubleValue));
+					return Optional.of(builder.equal(path.get(key), tmpDoubleValue));
 				}
 				if (value.startsWith("<")) {
 					tmpString = value.substring(1).trim().replace(",", ".");
 					tmpDoubleValue = Double.valueOf(tmpString);
-					return Optional.ofNullable(builder.le(path.get(key), tmpDoubleValue));
+					return Optional.of(builder.le(path.get(key), tmpDoubleValue));
 				}
 				if (value.startsWith(">")) {
 					tmpString = value.substring(1).trim().replace(",", ".");
 					tmpDoubleValue = Double.valueOf(tmpString);
-					return Optional.ofNullable(builder.ge(path.get(key), tmpDoubleValue));
+					return Optional.of(builder.ge(path.get(key), tmpDoubleValue));
 				}
 			} catch (NumberFormatException ex) {
 				Logger.getLogger(QueryHelper.class.getName()).log(Level.WARNING,
@@ -183,8 +251,8 @@ public class QueryHelper {
 
 		if (isIntegerClass(path.get(key).getJavaType())) {
 
-//			Logger.getLogger(QueryHelper.class.getName()).log(Level.INFO,
-//					"Generando predicado de entero para " + value);
+			// Logger.getLogger(QueryHelper.class.getName()).log(Level.INFO,
+			// "Generando predicado de entero para " + value);
 
 			Long tmpLongValue;
 			String tmpString = "";
@@ -193,17 +261,17 @@ public class QueryHelper {
 				if (value.startsWith("0") || value.startsWith("=")) {
 					tmpString = value.substring(1).trim();
 					tmpLongValue = Long.valueOf(tmpString);
-					return Optional.ofNullable(builder.equal(path.get(key), tmpLongValue));
+					return Optional.of(builder.equal(path.get(key), tmpLongValue));
 				}
 				if (value.startsWith("<")) {
 					tmpString = value.substring(1).trim();
 					tmpLongValue = Long.valueOf(tmpString);
-					return Optional.ofNullable(builder.le(path.get(key), tmpLongValue));
+					return Optional.of(builder.le(path.get(key), tmpLongValue));
 				}
 				if (value.startsWith(">")) {
 					tmpString = value.substring(1).trim();
 					tmpLongValue = Long.valueOf(tmpString);
-					return Optional.ofNullable(builder.ge(path.get(key), tmpLongValue));
+					return Optional.of(builder.ge(path.get(key), tmpLongValue));
 				}
 			} catch (NumberFormatException ex) {
 				Logger.getLogger(QueryHelper.class.getName()).log(Level.WARNING,
@@ -234,6 +302,10 @@ public class QueryHelper {
 
 	public static Predicate alwaysFalse(CriteriaBuilder builder) {
 		return builder.isTrue(builder.literal(false));
+	}
+
+	public static boolean isCollectionClass(Class<?> clazz) {
+		return clazz.isAssignableFrom(Collection.class);
 	}
 
 	public static boolean isIntegerClass(Class<?> clazz) {

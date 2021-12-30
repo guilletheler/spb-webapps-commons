@@ -94,6 +94,8 @@ public class EntityLazyDataModel<E> extends LazyDataModel<E> {
 		this.staticFilters = staticFilters;
 	}
 
+	
+	
 //	@Override
 //	public List<E> load(int first, int pageSize, String sortField, SortOrder sortOrder,
 //			Map<String, FilterMeta> filters) {
@@ -113,10 +115,14 @@ public class EntityLazyDataModel<E> extends LazyDataModel<E> {
 		Sort sort = Sort.by(getDirection(DEFAULT_SORT_ORDER), getDefaultSortField());
 
 		if (multiSortMeta != null) {
-			List<Order> orders = multiSortMeta.values().stream()
-					.map(m -> new Order(getDirection(m.getOrder() != null ? m.getOrder() : DEFAULT_SORT_ORDER),
-							m.getField()))
-					.collect(Collectors.toList());
+			 List<Order> orders = multiSortMeta.values().stream()
+			 		.map(m -> new Order(getDirection(m.getOrder() != null ? m.getOrder() : DEFAULT_SORT_ORDER),
+			 				m.getField()))
+			 		.collect(Collectors.toList());
+//			List<Order> orders = multiSortMeta.values().stream()
+//					.map(m -> new Order(getDirection(m.getSortOrder() != null ? m.getSortOrder() : DEFAULT_SORT_ORDER),
+//							m.getSortField()))
+//					.collect(Collectors.toList());
 			sort = Sort.by(orders);
 		}
 		return filterAndSort(first, pageSize, filters, sort);
@@ -164,11 +170,11 @@ public class EntityLazyDataModel<E> extends LazyDataModel<E> {
 			return null;
 		}
 	}
-
+	
 	@Override
 	public String getRowKey(E object) {
 		return columnKey;
-
+		
 	}
 
 	@Override
@@ -200,10 +206,10 @@ public class EntityLazyDataModel<E> extends LazyDataModel<E> {
 					typedId = rowKey;
 				}
 				return ((SelectableLazyDMFiller<E>) filler).findById(typedId);
-			} catch (NoSuchMethodException | SecurityException e) {
-				Logger.getLogger(getClass().getName()).log(Level.SEVERE,
-						"No se pudo obtener el método " + getIdMethodName,
-						e);
+			} catch (NoSuchMethodException e) {
+				Logger.getLogger(getClass().getName()).log(Level.SEVERE, "Error al getRowData", e);
+			} catch (SecurityException e) {
+				Logger.getLogger(getClass().getName()).log(Level.SEVERE, "Error al getRowData", e);
 			}
 		}
 		return null;
