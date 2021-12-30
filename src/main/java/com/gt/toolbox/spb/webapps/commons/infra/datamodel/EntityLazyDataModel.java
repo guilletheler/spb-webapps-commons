@@ -1,13 +1,13 @@
-package com.gt.toolbox.spb.webapps.commons.infra.model;
+package com.gt.toolbox.spb.webapps.commons.infra.datamodel;
 
 import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.stream.Collectors;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 import org.primefaces.model.FilterMeta;
 import org.primefaces.model.LazyDataModel;
@@ -19,7 +19,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.domain.Sort.Direction;
 import org.springframework.data.domain.Sort.Order;
 
-import com.gt.lotinfo.web.model.IWithId;
+import com.gt.toolbox.spb.webapps.commons.infra.model.IWithId;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -94,8 +94,6 @@ public class EntityLazyDataModel<E> extends LazyDataModel<E> {
 		this.staticFilters = staticFilters;
 	}
 
-	
-	
 //	@Override
 //	public List<E> load(int first, int pageSize, String sortField, SortOrder sortOrder,
 //			Map<String, FilterMeta> filters) {
@@ -166,11 +164,11 @@ public class EntityLazyDataModel<E> extends LazyDataModel<E> {
 			return null;
 		}
 	}
-	
+
 	@Override
 	public String getRowKey(E object) {
 		return columnKey;
-		
+
 	}
 
 	@Override
@@ -203,7 +201,8 @@ public class EntityLazyDataModel<E> extends LazyDataModel<E> {
 				}
 				return ((SelectableLazyDMFiller<E>) filler).findById(typedId);
 			} catch (NoSuchMethodException | SecurityException e) {
-				Logger.getLogger(getClass().getName()).log(Level.SEVERE, "No se pudo obtener el método " + getIdMethodName,
+				Logger.getLogger(getClass().getName()).log(Level.SEVERE,
+						"No se pudo obtener el método " + getIdMethodName,
 						e);
 			}
 		}

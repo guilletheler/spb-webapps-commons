@@ -1,4 +1,4 @@
-package com.gt.toolbox.spb.webapps.commons.infra.model;
+package com.gt.toolbox.spb.webapps.commons.infra.datamodel;
 
 import java.lang.reflect.Method;
 import java.util.Comparator;
