@@ -12,9 +12,9 @@ public class ObjectEvaluator<T> {
 
 	private List<Method> methods;
 
-	public ObjectEvaluator(Class<T> clazz, String sortField) {
+	public ObjectEvaluator(Class<T> clazz, String fieldChain) {
 
-		String[] chain = sortField.split("\\.");
+		String[] chain = fieldChain.split("\\.");
 
 		Class<?> curClass = clazz;
 		methods = new ArrayList<>();
@@ -25,7 +25,8 @@ public class ObjectEvaluator<T> {
 				method = curClass.getMethod(methodName);
 			} catch (NoSuchMethodException | SecurityException e) {
 				Logger.getLogger(getClass().getName()).log(Level.SEVERE,
-						"No se puede obtener el método " + methodName + " para " + sortField);
+						"No se puede obtener el método " + methodName + " en " + fieldChain + " para "
+								+ clazz.getName());
 				break;
 			}
 			methods.add(method);
@@ -37,17 +38,20 @@ public class ObjectEvaluator<T> {
 	public Object evaluate(T obj) {
 		Object ret = obj;
 
-		for (Method m : methods) {
-			try {
-				ret = m.invoke(ret);
-				if (ret == null) {
+		if (ret != null) {
+			for (Method m : methods) {
+				try {
+					ret = m.invoke(ret);
+					if (ret == null) {
+						break;
+					}
+				} catch (Exception e) {
+					Logger.getLogger(getClass().getName()).log(Level.SEVERE,
+							"Error al evaluar objeto " + e.getMessage());
+
+					ret = null;
 					break;
 				}
-			} catch (Exception e) {
-				Logger.getLogger(getClass().getName()).log(Level.SEVERE, "Error al evaluar objeto " + e.getMessage());
-
-				ret = null;
-				break;
 			}
 		}
 

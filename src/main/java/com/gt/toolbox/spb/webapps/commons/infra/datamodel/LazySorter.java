@@ -1,35 +1,37 @@
 package com.gt.toolbox.spb.webapps.commons.infra.datamodel;
 
-import java.lang.reflect.Method;
 import java.util.Comparator;
 import java.util.Objects;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import org.apache.commons.lang3.StringUtils;
 import org.primefaces.model.SortOrder;
 
 public class LazySorter<T> implements Comparator<T> {
 
 
-	private Method method;
-	private SortOrder sortOrder;;
+	private ObjectEvaluator<T> objectEvaluator;
+	private SortOrder sortOrder;
 
 	public LazySorter(Class<T> clazz, String sortField, SortOrder sortOrder) {
 		this.sortOrder = sortOrder;
-		String methodName = "get" + StringUtils.capitalize(sortField);
-		try {
-			method = clazz.getMethod(methodName);
-		} catch (NoSuchMethodException | SecurityException e) {
-			Logger.getLogger(getClass().getName()).log(Level.SEVERE, "No se puede obtener el método " + methodName);
-		}
+		objectEvaluator = new ObjectEvaluator<T>(clazz, sortField);
 	}
 
-	public int compare(T comprobante1, T comprobante2) {
+	public int compare(T obj1, T obj2) {
 		try {
-			Object value1 = method.invoke(comprobante1);
-			Object value2 = method.invoke(comprobante2);
-
+			
+			Object value1 = objectEvaluator.evaluate(obj1);
+			Object value2 = objectEvaluator.evaluate(obj2);
+			
+			if(value1 == null && value2 == null) {
+				return 0;
+			} else if(value1 == null) {
+				return -1;
+			} else if(value2 == null) {
+				return 1;
+			} 
+			
 			@SuppressWarnings({ "unchecked", "rawtypes" })
 			int value = ((Comparable) value1).compareTo(value2);
 
