@@ -1,4 +1,4 @@
-package com.gt.toolbox.spb.webapps.commons.infra.datamodel;
+package com.gt.toolbox.spb.pf.commons.infra.datamodel;
 
 import java.lang.reflect.Method;
 import java.util.HashMap;
@@ -9,6 +9,10 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
+import com.gt.toolbox.spb.webapps.commons.infra.datamodel.LazyDMFiller;
+import com.gt.toolbox.spb.webapps.commons.infra.datamodel.SelectableLazyDMFiller;
+import com.gt.toolbox.spb.webapps.commons.infra.model.IWithId;
+
 import org.primefaces.model.FilterMeta;
 import org.primefaces.model.LazyDataModel;
 import org.primefaces.model.SortMeta;
@@ -18,8 +22,6 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.domain.Sort.Direction;
 import org.springframework.data.domain.Sort.Order;
-
-import com.gt.toolbox.spb.webapps.commons.infra.model.IWithId;
 
 import lombok.Getter;
 import lombok.Setter;

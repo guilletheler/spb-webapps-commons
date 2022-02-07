@@ -2,18 +2,17 @@ package com.gt.toolbox.spb.webapps.commons.infra.datamodel;
 
 import java.util.Comparator;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
-import org.primefaces.model.SortOrder;
 
 public class LazySorter<T> implements Comparator<T> {
 
 
 	private ObjectEvaluator<T> objectEvaluator;
-	private SortOrder sortOrder;
+	private Integer sortOrder;
 
-	public LazySorter(Class<T> clazz, String sortField, SortOrder sortOrder) {
+	public LazySorter(Class<T> clazz, String sortField, Integer sortOrder) {
 		this.sortOrder = sortOrder;
 		objectEvaluator = new ObjectEvaluator<T>(clazz, sortField);
 	}
@@ -35,7 +34,11 @@ public class LazySorter<T> implements Comparator<T> {
 			@SuppressWarnings({ "unchecked", "rawtypes" })
 			int value = ((Comparable) value1).compareTo(value2);
 
-			return Objects.equals(sortOrder, SortOrder.ASCENDING) ? value : -1 * value;
+			if(Optional.of(sortOrder).orElse(0) >= 0) {
+				value = value * -1;
+			}
+
+			return value;
 		} catch (Exception e) {
 			Logger.getLogger(getClass().getName()).log(Level.SEVERE, "Error al aplicar filtro", e);
 

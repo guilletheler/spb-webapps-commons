@@ -1,4 +1,4 @@
-package com.gt.toolbox.spb.webapps.commons.infra.datamodel;
+package com.gt.toolbox.spb.pf.commons.infra.datamodel;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -20,8 +20,11 @@ import org.apache.commons.lang3.time.DateUtils;
 import org.primefaces.model.FilterMeta;
 import org.primefaces.model.LazyDataModel;
 import org.primefaces.model.SortMeta;
+import org.primefaces.model.SortOrder;
 
 import com.gt.toolbox.spb.webapps.commons.infra.utils.Utils;
+import com.gt.toolbox.spb.webapps.commons.infra.datamodel.LazySorter;
+import com.gt.toolbox.spb.webapps.commons.infra.datamodel.ObjectEvaluator;
 
 import lombok.Getter;
 
@@ -154,7 +157,7 @@ public class CollectionLazyDataModel<T> extends LazyDataModel<T> {
 			for (SortMeta meta : sortMeta.values()) {
 				// Collections.sort(data, new LazySorter<>(clazz, meta.getField(),
 				// meta.getOrder()));
-				Collections.sort(data, new LazySorter<>(clazz, meta.getField(), meta.getOrder()));
+				Collections.sort(data, new LazySorter<>(clazz, meta.getField(), Objects.equals(meta.getOrder(), SortOrder.ASCENDING) ? 1 : -1));
 			}
 		}
 
