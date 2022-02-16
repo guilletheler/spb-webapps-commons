@@ -1,7 +1,6 @@
 package com.gt.toolbox.spb.webapps.commons.infra.datamodel;
 
 import java.util.Comparator;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
