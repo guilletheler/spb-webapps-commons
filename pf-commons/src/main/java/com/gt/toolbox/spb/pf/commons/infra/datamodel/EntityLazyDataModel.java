@@ -1,5 +1,6 @@
 package com.gt.toolbox.spb.pf.commons.infra.datamodel;
 
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.List;
@@ -42,7 +43,7 @@ public class EntityLazyDataModel<E> extends LazyDataModel<E> {
 	private static final long serialVersionUID = 1L;
 
 	private static final SortOrder DEFAULT_SORT_ORDER = SortOrder.ASCENDING;
-//	private static final String DEFAULT_SORT_FIELD = "id";
+	// private static final String DEFAULT_SORT_FIELD = "id";
 
 	@Getter
 	@Setter
@@ -96,20 +97,21 @@ public class EntityLazyDataModel<E> extends LazyDataModel<E> {
 		this.staticFilters = staticFilters;
 	}
 
-	
-	
-//	@Override
-//	public List<E> load(int first, int pageSize, String sortField, SortOrder sortOrder,
-//			Map<String, FilterMeta> filters) {
-//		Sort sort = null;
-//		if (sortField != null) {
-//			sort = Sort.by(getDirection(sortOrder != null ? sortOrder : DEFAULT_SORT_ORDER), sortField);
-//		} else if (getDefaultSortField() != null) {
-//			sort = Sort.by(getDirection(sortOrder != null ? sortOrder : DEFAULT_SORT_ORDER), getDefaultSortField());
-//		}
-//
-//		return filterAndSort(first, pageSize, filters, sort);
-//	}
+	// @Override
+	// public List<E> load(int first, int pageSize, String sortField, SortOrder
+	// sortOrder,
+	// Map<String, FilterMeta> filters) {
+	// Sort sort = null;
+	// if (sortField != null) {
+	// sort = Sort.by(getDirection(sortOrder != null ? sortOrder :
+	// DEFAULT_SORT_ORDER), sortField);
+	// } else if (getDefaultSortField() != null) {
+	// sort = Sort.by(getDirection(sortOrder != null ? sortOrder :
+	// DEFAULT_SORT_ORDER), getDefaultSortField());
+	// }
+	//
+	// return filterAndSort(first, pageSize, filters, sort);
+	// }
 
 	@Override
 	public List<E> load(int first, int pageSize, Map<String, SortMeta> multiSortMeta, Map<String, FilterMeta> filters) {
@@ -117,14 +119,15 @@ public class EntityLazyDataModel<E> extends LazyDataModel<E> {
 		Sort sort = Sort.by(getDirection(DEFAULT_SORT_ORDER), getDefaultSortField());
 
 		if (multiSortMeta != null) {
-			 List<Order> orders = multiSortMeta.values().stream()
-			 		.map(m -> new Order(getDirection(m.getOrder() != null ? m.getOrder() : DEFAULT_SORT_ORDER),
-			 				m.getField()))
-			 		.collect(Collectors.toList());
-//			List<Order> orders = multiSortMeta.values().stream()
-//					.map(m -> new Order(getDirection(m.getSortOrder() != null ? m.getSortOrder() : DEFAULT_SORT_ORDER),
-//							m.getSortField()))
-//					.collect(Collectors.toList());
+			List<Order> orders = multiSortMeta.values().stream()
+					.map(m -> new Order(getDirection(m.getOrder() != null ? m.getOrder() : DEFAULT_SORT_ORDER),
+							m.getField()))
+					.collect(Collectors.toList());
+			// List<Order> orders = multiSortMeta.values().stream()
+			// .map(m -> new Order(getDirection(m.getSortOrder() != null ? m.getSortOrder()
+			// : DEFAULT_SORT_ORDER),
+			// m.getSortField()))
+			// .collect(Collectors.toList());
 			sort = Sort.by(orders);
 		}
 		return filterAndSort(first, pageSize, filters, sort);
@@ -163,20 +166,52 @@ public class EntityLazyDataModel<E> extends LazyDataModel<E> {
 
 	private static Direction getDirection(SortOrder order) {
 		switch (order) {
-		case ASCENDING:
-			return Direction.ASC;
-		case DESCENDING:
-			return Direction.DESC;
-		case UNSORTED:
-		default:
-			return null;
+			case ASCENDING:
+				return Direction.ASC;
+			case DESCENDING:
+				return Direction.DESC;
+			case UNSORTED:
+			default:
+				return null;
 		}
 	}
-	
+
+	Method columnKeyGetterMethod = null;
+
+	private Method getColumnKeyGetterMethod() {
+
+		if (columnKeyGetterMethod == null) {
+
+			String getIdMethodName = null;
+
+			if (columnKey != null) {
+				getIdMethodName = "get" + columnKey.substring(0, 1).toUpperCase() + columnKey.substring(1);
+			} else if (IWithId.class.isAssignableFrom(entityClass)) {
+				getIdMethodName = "getId";
+			}
+
+			try {
+				columnKeyGetterMethod = entityClass.getMethod(getIdMethodName);
+			} catch (NoSuchMethodException | SecurityException e) {
+				Logger.getLogger(getClass().getName()).log(Level.SEVERE, "Error al getColumnKeyMethod", e);
+			}
+		}
+
+		return columnKeyGetterMethod;
+	}
+
 	@Override
 	public String getRowKey(E object) {
-		return columnKey;
-		
+
+		String stringRowKey = null;
+
+		try {
+			stringRowKey = getColumnKeyGetterMethod().invoke(object).toString();
+		} catch (SecurityException | IllegalAccessException | InvocationTargetException e) {
+			Logger.getLogger(getClass().getName()).log(Level.SEVERE, "Error al getRowData", e);
+		}
+
+		return stringRowKey;
 	}
 
 	@Override
@@ -187,29 +222,22 @@ public class EntityLazyDataModel<E> extends LazyDataModel<E> {
 		}
 
 		if (entityClass != null) {
-			String getIdMethodName = null;
-
-			if (columnKey != null) {
-				getIdMethodName = "get" + columnKey.substring(0, 1).toUpperCase() + columnKey.substring(1);
-			} else if (IWithId.class.isAssignableFrom(entityClass)) {
-				getIdMethodName = "getId";
-			}
 
 			try {
-				Method getIdMethod = entityClass.getMethod(getIdMethodName);
 				Object typedId;
-				if (Objects.equals(getIdMethod.getReturnType(), Integer.class)
-						|| Objects.equals(getIdMethod.getReturnType(), int.class)) {
+				if (Objects.equals(getColumnKeyGetterMethod().getReturnType(), Integer.class)
+						|| Objects.equals(getColumnKeyGetterMethod().getReturnType(), int.class)) {
 					typedId = Integer.valueOf(rowKey);
-				} else if (Objects.equals(getIdMethod.getReturnType(), Long.class)
-						|| Objects.equals(getIdMethod.getReturnType(), long.class)) {
+				} else if (Objects.equals(getColumnKeyGetterMethod().getReturnType(), Long.class)
+						|| Objects.equals(getColumnKeyGetterMethod().getReturnType(), long.class)) {
 					typedId = Long.valueOf(rowKey);
 				} else {
 					typedId = rowKey;
 				}
 				return ((SelectableLazyDMFiller<E>) filler).findById(typedId);
-			} catch (NoSuchMethodException e) {
-				Logger.getLogger(getClass().getName()).log(Level.SEVERE, "Error al getRowData", e);
+			} catch (NumberFormatException e) {
+				Logger.getLogger(getClass().getName()).log(Level.SEVERE,
+						"Error al getRowData, " + rowKey + " no se puede convertir a numero");
 			} catch (SecurityException e) {
 				Logger.getLogger(getClass().getName()).log(Level.SEVERE, "Error al getRowData", e);
 			}
