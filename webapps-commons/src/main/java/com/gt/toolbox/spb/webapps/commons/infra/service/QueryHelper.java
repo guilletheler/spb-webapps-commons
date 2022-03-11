@@ -28,6 +28,7 @@ public class QueryHelper {
 	public static <T> Specification<T> getFilterSpecification(Map<String, String> filterValues) {
 
 		return (Root<T> root, CriteriaQuery<?> query, CriteriaBuilder builder) -> {
+			query.distinct(true);
 			return buildPredicate(filterValues, root, builder);
 		};
 	}
