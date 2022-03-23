@@ -46,13 +46,15 @@ public class CollectionsDtoUtils {
 
         entityCollection.removeAll(toRemove);
 
-        for (D dto : dtoCollection) {
-            E entity = entityCollection.stream().filter(e -> converter.sameKey(e, dto)).findFirst().orElse(null);
-            if (entity == null) {
-                entity = converter.toNewEntity(dto);
-                entityCollection.add(entity);
-            } else {
-                converter.toEntity(entity, dto);
+        if(dtoCollection != null) {
+            for (D dto : dtoCollection) {
+                E entity = entityCollection.stream().filter(e -> converter.sameKey(e, dto)).findFirst().orElse(null);
+                if (entity == null) {
+                    entity = converter.toNewEntity(dto);
+                    entityCollection.add(entity);
+                } else {
+                    converter.toEntity(entity, dto);
+                }
             }
         }
 
