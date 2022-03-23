@@ -46,19 +46,24 @@ public class CollectionsDtoUtils {
 
         entityCollection.removeAll(toRemove);
 
-        if(dtoCollection != null) {
+        if (dtoCollection != null) {
             for (D dto : dtoCollection) {
+                // Busco el dto en la colección de entidades
                 E entity = entityCollection.stream().filter(e -> converter.sameKey(e, dto)).findFirst().orElse(null);
+
                 if (entity == null) {
+                    // si no está creo la entidad y la agrego a la lista
                     entity = converter.toNewEntity(dto);
                     entityCollection.add(entity);
                 } else {
+                    // si está asigno los valores
                     converter.toEntity(entity, dto);
                 }
             }
         }
 
         return entityCollection;
+
     }
 
     public static <E, D> List<E> findToRemove(Collection<E> entityCollection, Collection<D> dtoCollection,
