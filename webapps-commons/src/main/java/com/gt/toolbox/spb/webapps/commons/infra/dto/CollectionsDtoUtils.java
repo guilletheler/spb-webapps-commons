@@ -98,8 +98,7 @@ public class CollectionsDtoUtils {
 
         keysToRemove.forEach(key -> map.remove(key));
 
-        list.stream().filter(par -> !map.containsKey(par.getKey()))
-                .forEach(par -> map.put(par.getKey(), par.getValue()));
+        list.forEach(par -> map.put(par.getKey(), par.getValue()));
 
         return map;
     }
