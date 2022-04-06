@@ -12,6 +12,7 @@ import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import javax.persistence.criteria.CriteriaBuilder;
 import javax.persistence.criteria.CriteriaQuery;
@@ -19,23 +20,34 @@ import javax.persistence.criteria.Path;
 import javax.persistence.criteria.Predicate;
 import javax.persistence.criteria.Root;
 
-import org.springframework.data.jpa.domain.Specification;
-
 import com.gt.toolbox.spb.webapps.commons.infra.utils.Utils;
+
+import org.springframework.data.jpa.domain.Specification;
 
 public class QueryHelper {
 
 	public static <T> Specification<T> getFilterSpecification(Map<String, String> filterValues) {
+		return getFilterSpecification(filterValues, true);
+	}
+
+	public static <T> Specification<T> getFilterSpecification(Map<String, String> filterValues,
+			boolean concatUsingAnd) {
 
 		return (Root<T> root, CriteriaQuery<?> query, CriteriaBuilder builder) -> {
 			query.distinct(true);
-			return buildPredicate(filterValues, root, builder);
+			return buildPredicate(filterValues, root, builder, concatUsingAnd);
 		};
 	}
-	
+
 	public static <T> Predicate buildPredicate(Map<String, String> filterValues, Root<T> root,
 			CriteriaBuilder builder) {
-		Optional<Predicate> predicate = filterValues.entrySet().stream()
+		return buildPredicate(filterValues, root, builder, true);
+	}
+
+	public static <T> Predicate buildPredicate(Map<String, String> filterValues, Root<T> root,
+			CriteriaBuilder builder, boolean concatUsingAnd) {
+
+		Stream<Predicate> predicates = filterValues.entrySet().stream()
 				.filter(v -> v.getValue() != null && v.getValue().length() > 0).map(entry -> {
 					Path<?> path = root;
 					String key = entry.getKey();
@@ -46,8 +58,9 @@ public class QueryHelper {
 						key = key.substring(key.indexOf('.') + 1);
 					}
 
-//						Logger.getLogger(QueryHelper.class.getName()).log(Level.INFO, "Generando predicado para clase "
-//								+ path.get(key).getJavaType().getName() + " con valor " + entry.getValue());
+					// Logger.getLogger(QueryHelper.class.getName()).log(Level.INFO, "Generando
+					// predicado para clase "
+					// + path.get(key).getJavaType().getName() + " con valor " + entry.getValue());
 
 					final Path<?> finalPath = path;
 					final String finalKey = key;
@@ -58,12 +71,20 @@ public class QueryHelper {
 											() -> buildBooleanPredicate(builder, finalPath, finalKey, entry.getValue())
 													.orElseGet(() -> buildDatePredicate(builder, finalPath, finalKey,
 															entry.getValue())
-																	.orElseGet(() -> buildDefaultPredicate(builder,
-																			finalPath, finalKey, entry.getValue())))));
+															.orElseGet(() -> buildDefaultPredicate(builder,
+																	finalPath, finalKey, entry.getValue())))));
 
 					return tmp;
 
-				}).collect(Collectors.reducing((a, b) -> builder.and(a, b)));
+				});
+
+		Optional<Predicate> predicate;
+
+		if (concatUsingAnd) {
+			predicate = predicates.collect(Collectors.reducing((a, b) -> builder.and(a, b)));
+		} else {
+			predicate = predicates.collect(Collectors.reducing((a, b) -> builder.or(a, b)));
+		}
 
 		return predicate.orElseGet(() -> alwaysTrue(builder));
 	}
