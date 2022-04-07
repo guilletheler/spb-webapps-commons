@@ -9,6 +9,7 @@ import java.util.Date;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Map.Entry;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
@@ -49,33 +50,8 @@ public class QueryHelper {
 
 		Stream<Predicate> predicates = filterValues.entrySet().stream()
 				.filter(v -> v.getValue() != null && v.getValue().length() > 0).map(entry -> {
-					Path<?> path = root;
-					String key = entry.getKey();
-
-					while (key.contains(".")) {
-						String[] splitKey = key.split("\\.");
-						path = path.get(splitKey[0]);
-						key = key.substring(key.indexOf('.') + 1);
-					}
-
-					// Logger.getLogger(QueryHelper.class.getName()).log(Level.INFO, "Generando
-					// predicado para clase "
-					// + path.get(key).getJavaType().getName() + " con valor " + entry.getValue());
-
-					final Path<?> finalPath = path;
-					final String finalKey = key;
-
-					Predicate tmp = buildIntegerPredicate(builder, finalPath, finalKey, entry.getValue())
-							.orElseGet(() -> buildDecimalPredicate(builder, finalPath, finalKey, entry.getValue())
-									.orElseGet(
-											() -> buildBooleanPredicate(builder, finalPath, finalKey, entry.getValue())
-													.orElseGet(() -> buildDatePredicate(builder, finalPath, finalKey,
-															entry.getValue())
-															.orElseGet(() -> buildDefaultPredicate(builder,
-																	finalPath, finalKey, entry.getValue())))));
-
+					Predicate tmp = buildPredicate(root, builder, entry.getKey(), entry.getValue());
 					return tmp;
-
 				});
 
 		Optional<Predicate> predicate;
@@ -87,6 +63,33 @@ public class QueryHelper {
 		}
 
 		return predicate.orElseGet(() -> alwaysTrue(builder));
+	}
+
+	public static <T> Predicate buildPredicate(Root<T> root, CriteriaBuilder builder, String key, String value) {
+		Path<?> path = root;
+
+		while (key.contains(".")) {
+			String[] splitKey = key.split("\\.");
+			path = path.get(splitKey[0]);
+			key = key.substring(key.indexOf('.') + 1);
+		}
+
+		// Logger.getLogger(QueryHelper.class.getName()).log(Level.INFO, "Generando
+		// predicado para clase "
+		// + path.get(key).getJavaType().getName() + " con valor " + entry.getValue());
+
+		final Path<?> finalPath = path;
+		final String finalKey = key;
+
+		Predicate tmp = buildIntegerPredicate(builder, finalPath, finalKey, value)
+				.orElseGet(() -> buildDecimalPredicate(builder, finalPath, finalKey, value)
+						.orElseGet(
+								() -> buildBooleanPredicate(builder, finalPath, finalKey, value)
+										.orElseGet(() -> buildDatePredicate(builder, finalPath, finalKey,
+												value)
+												.orElseGet(() -> buildDefaultPredicate(builder,
+														finalPath, finalKey, value)))));
+		return tmp;
 	}
 
 	public static Predicate buildDefaultPredicate(CriteriaBuilder builder, Path<?> path, String key, String value) {
@@ -342,4 +345,5 @@ public class QueryHelper {
 				|| Objects.equals(Double.class, clazz) || Objects.equals(double.class, clazz)
 				|| Objects.equals(BigDecimal.class, clazz);
 	}
+	
 }
