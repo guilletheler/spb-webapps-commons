@@ -1,6 +1,7 @@
 package com.gt.toolbox.spb.webapps.commons.infra.service;
 
 import java.util.Optional;
+import java.util.logging.Logger;
 
 import javax.persistence.criteria.CriteriaBuilder;
 import javax.persistence.criteria.CriteriaQuery;
@@ -19,6 +20,11 @@ import org.springframework.data.jpa.domain.Specification;
 public class PageRequestHelper {
 
     public static Pageable toPageable(PageRequest pageRequest) {
+
+        if(pageRequest == null) {
+            return Pageable.unpaged();
+        }
+
         if (pageRequest.getFirst() == null) {
             pageRequest.setFirst(0);
         }
@@ -106,6 +112,8 @@ public class PageRequestHelper {
     }
 
     private static <T> Predicate buildPredicate(Root<T> root, CriteriaBuilder builder, FilterMeta filter) {
+
+        Logger.getLogger(PageRequestHelper.class.getName()).info("filter: " + filter);
 
         Predicate ret = null;
 
