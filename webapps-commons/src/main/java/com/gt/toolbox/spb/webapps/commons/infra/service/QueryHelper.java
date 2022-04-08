@@ -1,5 +1,6 @@
 package com.gt.toolbox.spb.webapps.commons.infra.service;
 
+import java.lang.reflect.ParameterizedType;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.text.ParseException;
@@ -16,6 +17,7 @@ import java.util.stream.Stream;
 
 import javax.persistence.criteria.CriteriaBuilder;
 import javax.persistence.criteria.CriteriaQuery;
+import javax.persistence.criteria.Expression;
 import javax.persistence.criteria.Path;
 import javax.persistence.criteria.Predicate;
 import javax.persistence.criteria.Root;
@@ -64,34 +66,27 @@ public class QueryHelper {
 		return predicate.orElseGet(() -> alwaysTrue(builder));
 	}
 
-	public static <T> Predicate buildPredicate(Root<T> root, CriteriaBuilder builder, String key, String value) {
-		Path<?> path = root;
+	public static <T> Predicate buildPredicate(Root<T> root, CriteriaBuilder builder, String originalKey,
+			String value) {
+		// lo meto dentro de un arreglo para que qude final y se pueda usar dentro de
+		// las expresiones lambda
+		Path<?> path[] = new Path[] { root };
 
-		while (key.contains(".")) {
-			String[] splitKey = key.split("\\.");
-			path = path.get(splitKey[0]);
-			key = key.substring(key.indexOf('.') + 1);
+		String[] splitKey = originalKey.split("\\.");
+
+		for (String key : splitKey) {
+			path[0] = path[0].get(key);
 		}
 
-		// Logger.getLogger(QueryHelper.class.getName()).log(Level.INFO, "Generando
-		// predicado para clase "
-		// + path.get(key).getJavaType().getName() + " con valor " + entry.getValue());
-
-		final Path<?> finalPath = path;
-		final String finalKey = key;
-
-		Predicate tmp = buildIntegerPredicate(builder, finalPath, finalKey, value)
-				.orElseGet(() -> buildDecimalPredicate(builder, finalPath, finalKey, value)
-						.orElseGet(
-								() -> buildBooleanPredicate(builder, finalPath, finalKey, value)
-										.orElseGet(() -> buildDatePredicate(builder, finalPath, finalKey,
-												value)
-												.orElseGet(() -> buildDefaultPredicate(builder,
-														finalPath, finalKey, value)))));
-		return tmp;
+		Predicate ret = buildIntegerPredicate(builder, path[0], value)
+				.orElseGet(() -> buildDecimalPredicate(builder, path[0], value)
+						.orElseGet(() -> buildBooleanPredicate(builder, path[0], value)
+								.orElseGet(() -> buildDatePredicate(builder, path[0], value)
+										.orElseGet(() -> buildDefaultPredicate(builder, path[0], value)))));
+		return ret;
 	}
 
-	public static Predicate buildDefaultPredicate(CriteriaBuilder builder, Path<?> path, String key, String value) {
+	public static Predicate buildDefaultPredicate(CriteriaBuilder builder, Path<?> path, String value) {
 
 		Predicate ret = null;
 
@@ -117,10 +112,10 @@ public class QueryHelper {
 					if (andValue.length() > 1 && andValue.startsWith("'") && andValue.endsWith("'")) {
 						andValue = andValue.substring(1, andValue.length() - 1);
 
-						andPredicate = builder.like(path.get(key).as(String.class),
+						andPredicate = builder.like(path.as(String.class),
 								andValue);
 					} else {
-						andPredicate = builder.like(builder.upper(path.get(key).as(String.class)),
+						andPredicate = builder.like(builder.upper(path.as(String.class)),
 								"%" + andValue.toUpperCase() + "%");
 					}
 
@@ -161,35 +156,37 @@ public class QueryHelper {
 	 * @param value
 	 * @return
 	 */
-	public Predicate buildCollectionPredicate(CriteriaBuilder builder, Path<?> path, String key, String value) {
+	public Optional<Predicate> buildCollectionPredicate(CriteriaBuilder builder, Path<?> path, String value) {
+
 		Predicate ret = null;
 
-		String[] values = value.split("%or%");
+		if (Collection.class.isAssignableFrom(path.getJavaType())) {
+			Class<?> clazz = ((Class<?>) ((ParameterizedType) path.getJavaType()
+					.getGenericSuperclass()).getActualTypeArguments()[0]);
 
-		for (String val : values) {
-			Predicate part = builder.like(builder.upper(path.get(key).as(String.class)), "%" + val.toUpperCase() + "%");
-			if (ret == null) {
-				ret = part;
-			} else {
-				ret = builder.or(ret, part);
-			}
+			CriteriaQuery<?> query = builder.createQuery(clazz);
+			Root<?> collectionRoot = query.from(clazz);
+
 		}
 
-		return ret;
+		return Optional.empty();
 	}
 
-	public static Optional<Predicate> buildDatePredicate(CriteriaBuilder builder, Path<?> path, String key,
+	public static Optional<Predicate> buildDatePredicate(CriteriaBuilder builder, Path<?> path,
 			String value) {
-		if (Objects.equals(path.get(key).getJavaType(), Date.class)) {
+		if (Objects.equals(path.getJavaType(), Date.class)) {
+
+			Expression<Date> dateExpression = path.as(Date.class);
+
 			if (value.trim().startsWith("-") || value.trim().startsWith(">")) {
 				Date fechaIni = QueryHelper.parseDate(value.trim().substring(1).trim());
-				return Optional.of(builder.greaterThanOrEqualTo(path.get(key), fechaIni));
+				return Optional.of(builder.greaterThanOrEqualTo(dateExpression, fechaIni));
 			} else if (value.trim().startsWith("<")) {
 				Date fechaFin = QueryHelper.parseDate(value.trim().substring(1).trim());
-				return Optional.of(builder.lessThanOrEqualTo(path.get(key), fechaFin));
+				return Optional.of(builder.lessThanOrEqualTo(dateExpression, fechaFin));
 			} else if (value.trim().endsWith("-")) {
 				Date fechaFin = QueryHelper.parseDate(value.trim().substring(0, value.trim().length() - 1).trim());
-				return Optional.of(builder.lessThanOrEqualTo(path.get(key), fechaFin));
+				return Optional.of(builder.lessThanOrEqualTo(dateExpression, fechaFin));
 			} else if (value.trim().contains("-")) {
 				// Supongo un between
 
@@ -209,12 +206,12 @@ public class QueryHelper {
 					fechaFin = QueryHelper.parseDate("01/01/2100");
 				}
 
-				return Optional.of(builder.between(path.get(key), fechaIni, fechaFin));
+				return Optional.of(builder.between(dateExpression, fechaIni, fechaFin));
 				// return null;
 
 			} else {
 
-				return Optional.of(builder.like(builder.function("TO_CHAR", String.class, path.get(key),
+				return Optional.of(builder.like(builder.function("TO_CHAR", String.class, dateExpression,
 						builder.literal("dd/MM/yyyy HH24:MI:ss")), "%" + value + "%"));
 
 			}
@@ -223,25 +220,27 @@ public class QueryHelper {
 		return Optional.empty();
 	}
 
-	public static Optional<Predicate> buildBooleanPredicate(CriteriaBuilder builder, Path<?> path, String key,
+	public static Optional<Predicate> buildBooleanPredicate(CriteriaBuilder builder, Path<?> path,
 			String value) {
 
-		if (Objects.equals(path.get(key).getJavaType(), boolean.class)
-				|| Objects.equals(path.get(key).getJavaType(), Boolean.class)) {
+		if (Objects.equals(path.getJavaType(), boolean.class)
+				|| Objects.equals(path.getJavaType(), Boolean.class)) {
 			Boolean valor = value.trim().equalsIgnoreCase("s") || value.trim().equalsIgnoreCase("si")
 					|| value.trim().equalsIgnoreCase("t") || value.trim().equalsIgnoreCase("true");
-			return Optional.of(builder.equal(path.get(key), valor));
+			return Optional.of(builder.equal(path, valor));
 		}
 		return Optional.empty();
 	}
 
-	public static Optional<Predicate> buildDecimalPredicate(CriteriaBuilder builder, Path<?> path, String key,
+	public static Optional<Predicate> buildDecimalPredicate(CriteriaBuilder builder, Path<?> path,
 			String value) {
 
-		if (isDecimalClass(path.get(key).getJavaType())) {
+		if (isDecimalClass(path.getJavaType())) {
 
 			// Logger.getLogger(QueryHelper.class.getName()).log(Level.INFO,
 			// "Generando predicado de decimal para " + value);
+
+			Expression<Number> numberExpression = path.as(Number.class);
 
 			Double tmpDoubleValue;
 			String tmpString = "";
@@ -250,17 +249,17 @@ public class QueryHelper {
 				if (value.startsWith("0") || value.startsWith("=")) {
 					tmpString = value.substring(1).trim().replace(",", ".");
 					tmpDoubleValue = Double.valueOf(tmpString);
-					return Optional.of(builder.equal(path.get(key), tmpDoubleValue));
+					return Optional.of(builder.equal(numberExpression, tmpDoubleValue));
 				}
 				if (value.startsWith("<")) {
 					tmpString = value.substring(1).trim().replace(",", ".");
 					tmpDoubleValue = Double.valueOf(tmpString);
-					return Optional.of(builder.le(path.get(key), tmpDoubleValue));
+					return Optional.of(builder.le(numberExpression, tmpDoubleValue));
 				}
 				if (value.startsWith(">")) {
 					tmpString = value.substring(1).trim().replace(",", ".");
 					tmpDoubleValue = Double.valueOf(tmpString);
-					return Optional.of(builder.ge(path.get(key), tmpDoubleValue));
+					return Optional.of(builder.ge(numberExpression, tmpDoubleValue));
 				}
 			} catch (NumberFormatException ex) {
 				Logger.getLogger(QueryHelper.class.getName()).log(Level.WARNING,
@@ -270,10 +269,12 @@ public class QueryHelper {
 		return Optional.empty();
 	}
 
-	public static Optional<Predicate> buildIntegerPredicate(CriteriaBuilder builder, Path<?> path, String key,
+	public static Optional<Predicate> buildIntegerPredicate(CriteriaBuilder builder, Path<?> path,
 			String value) {
 
-		if (isIntegerClass(path.get(key).getJavaType())) {
+		if (isIntegerClass(path.getJavaType())) {
+
+			Expression<Number> numberExpression = path.as(Number.class);
 
 			// Logger.getLogger(QueryHelper.class.getName()).log(Level.INFO,
 			// "Generando predicado de entero para " + value);
@@ -285,17 +286,17 @@ public class QueryHelper {
 				if (value.startsWith("0") || value.startsWith("=")) {
 					tmpString = value.substring(1).trim();
 					tmpLongValue = Long.valueOf(tmpString);
-					return Optional.of(builder.equal(path.get(key), tmpLongValue));
+					return Optional.of(builder.equal(numberExpression, tmpLongValue));
 				}
 				if (value.startsWith("<")) {
 					tmpString = value.substring(1).trim();
 					tmpLongValue = Long.valueOf(tmpString);
-					return Optional.of(builder.le(path.get(key), tmpLongValue));
+					return Optional.of(builder.le(numberExpression, tmpLongValue));
 				}
 				if (value.startsWith(">")) {
 					tmpString = value.substring(1).trim();
 					tmpLongValue = Long.valueOf(tmpString);
-					return Optional.of(builder.ge(path.get(key), tmpLongValue));
+					return Optional.of(builder.ge(numberExpression, tmpLongValue));
 				}
 			} catch (NumberFormatException ex) {
 				Logger.getLogger(QueryHelper.class.getName()).log(Level.WARNING,
@@ -344,5 +345,5 @@ public class QueryHelper {
 				|| Objects.equals(Double.class, clazz) || Objects.equals(double.class, clazz)
 				|| Objects.equals(BigDecimal.class, clazz);
 	}
-	
+
 }

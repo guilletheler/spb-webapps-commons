@@ -113,8 +113,6 @@ public class PageRequestHelper {
 
     private static <T> Predicate buildPredicate(Root<T> root, CriteriaBuilder builder, FilterMeta filter) {
 
-        Logger.getLogger(PageRequestHelper.class.getName()).info("filter: " + filter);
-
         Predicate ret = null;
 
         if (filter.getFieldName() != null && !filter.getFieldName().isEmpty() && filter.getValue() != null
@@ -151,7 +149,7 @@ public class PageRequestHelper {
                         if (ret == null) {
                             ret = tmpOr;
                         } else {
-                            ret = builder.and(ret, tmpOr);
+                            ret = builder.or(ret, tmpOr);
                         }
                     }
                     break;
@@ -170,6 +168,8 @@ public class PageRequestHelper {
             throw new IllegalArgumentException(
                     "se esperaba un filtro con nombre de campo y valor o con operador y lista de filtros");
         }
+
+        Logger.getLogger(PageRequestHelper.class.getName()).info("procesando : " + filter);
 
         return ret;
 
