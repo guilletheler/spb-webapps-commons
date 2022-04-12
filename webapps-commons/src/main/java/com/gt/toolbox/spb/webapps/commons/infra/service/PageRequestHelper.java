@@ -40,7 +40,10 @@ public class PageRequestHelper {
         }
         Sort sorts = null;
 
-        if (pageRequest.getMultiSortMeta() == null || pageRequest.getMultiSortMeta().length == 0) {
+        if(pageRequest.getSortField() != null && pageRequest.getSortDirection() != null) {
+            Sort.Direction direction = pageRequest.getSortDirection() == SortDirection.ASC ? Sort.Direction.ASC : Sort.Direction.DESC;
+            sorts = Sort.by(direction, pageRequest.getSortField());
+        } else if (pageRequest.getMultiSortMeta() == null || pageRequest.getMultiSortMeta().length == 0) {
             if (pageRequest.getSortField() != null && !pageRequest.getSortField().isEmpty()) {
                 if (Optional.ofNullable(pageRequest.getSortDirection())
                         .orElse(SortDirection.NONE) == SortDirection.ASC) {
@@ -102,7 +105,7 @@ public class PageRequestHelper {
     }
 
     private static <T> Predicate buildPredicate(PageRequest pageRequest, Root<T> root, CriteriaBuilder builder) {
-        if (pageRequest.getFilter() == null) {
+        if (pageRequest == null || pageRequest.getFilter() == null) {
             return QueryHelper.alwaysTrue(builder);
         }
 
@@ -169,7 +172,7 @@ public class PageRequestHelper {
                     "se esperaba un filtro con nombre de campo y valor o con operador y lista de filtros");
         }
 
-        Logger.getLogger(PageRequestHelper.class.getName()).info("procesando : " + filter);
+        // Logger.getLogger(PageRequestHelper.class.getName()).info("procesando : " + filter);
 
         return ret;
 
