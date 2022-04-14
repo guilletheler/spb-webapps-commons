@@ -1,7 +1,6 @@
 package com.gt.toolbox.spb.webapps.commons.infra.service;
 
 import java.util.Optional;
-import java.util.logging.Logger;
 
 import javax.persistence.criteria.CriteriaBuilder;
 import javax.persistence.criteria.CriteriaQuery;

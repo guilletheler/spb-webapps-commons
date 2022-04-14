@@ -1,6 +1,6 @@
 package com.gt.toolbox.spb.webapps.commons.infra.service;
 
-import java.lang.reflect.ParameterizedType;
+//import java.lang.reflect.ParameterizedType;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.text.ParseException;
@@ -155,9 +155,8 @@ public class QueryHelper {
 	 * @param key
 	 * @param value
 	 * @return
-	 */
-	public Optional<Predicate> buildCollectionPredicate(CriteriaBuilder builder, Path<?> path, String value) {
-
+	 public Optional<Predicate> buildCollectionPredicate(CriteriaBuilder builder, Path<?> path, String value) {
+		 
 		Predicate ret = null;
 
 		if (Collection.class.isAssignableFrom(path.getJavaType())) {
@@ -168,9 +167,10 @@ public class QueryHelper {
 			Root<?> collectionRoot = query.from(clazz);
 
 		}
-
+		
 		return Optional.empty();
 	}
+	*/
 
 	public static Optional<Predicate> buildDatePredicate(CriteriaBuilder builder, Path<?> path,
 			String value) {
