@@ -97,6 +97,43 @@ public class CollectionLazyDataModel<T> extends LazyDataModel<T> {
 
 	@Override
 	public List<T> load(int first, int pageSize, Map<String, SortMeta> sortMeta, Map<String, FilterMeta> filterMeta) {
+		List<T> data = getFiltredData(filterMeta);
+
+		// sort
+		if (sortMeta != null && !sortMeta.isEmpty()) {
+			for (SortMeta meta : sortMeta.values()) {
+				// Collections.sort(data, new LazySorter<>(clazz, meta.getField(),
+				// meta.getOrder()));
+				Collections.sort(data, new LazySorter<>(clazz, meta.getField(),
+						Objects.equals(meta.getOrder(), SortOrder.ASCENDING) ? 1 : -1));
+			}
+		}
+
+		// rowCount
+		int dataSize = data.size();
+		this.setRowCount(dataSize);
+
+		List<T> ret;
+
+		// paginate
+		if (dataSize > pageSize) {
+			try {
+				ret = data.subList(first, first + pageSize);
+			} catch (IndexOutOfBoundsException e) {
+				ret = data.subList(first, first + (dataSize % pageSize));
+			}
+		} else {
+			ret = data;
+		}
+		//
+		// Logger.getLogger(getClass().getName()).log(Level.INFO,
+		// "devolviendo " + ret.size() + " objetos de un total de " +
+		// datasource.size());
+
+		return ret;
+	}
+
+	private List<T> getFiltredData(Map<String, FilterMeta> filterMeta) {
 		List<T> data = new ArrayList<>();
 
 		// filter
@@ -151,38 +188,7 @@ public class CollectionLazyDataModel<T> extends LazyDataModel<T> {
 				data.add(entity);
 			}
 		}
-
-		// sort
-		if (sortMeta != null && !sortMeta.isEmpty()) {
-			for (SortMeta meta : sortMeta.values()) {
-				// Collections.sort(data, new LazySorter<>(clazz, meta.getField(),
-				// meta.getOrder()));
-				Collections.sort(data, new LazySorter<>(clazz, meta.getField(), Objects.equals(meta.getOrder(), SortOrder.ASCENDING) ? 1 : -1));
-			}
-		}
-
-		// rowCount
-		int dataSize = data.size();
-		this.setRowCount(dataSize);
-
-		List<T> ret;
-
-		// paginate
-		if (dataSize > pageSize) {
-			try {
-				ret = data.subList(first, first + pageSize);
-			} catch (IndexOutOfBoundsException e) {
-				ret = data.subList(first, first + (dataSize % pageSize));
-			}
-		} else {
-			ret = data;
-		}
-		//
-		// Logger.getLogger(getClass().getName()).log(Level.INFO,
-		// "devolviendo " + ret.size() + " objetos de un total de " +
-		// datasource.size());
-
-		return ret;
+		return data;
 	}
 
 	private boolean matchValue(String filterField, Object filterValue, T entity) {
@@ -208,9 +214,8 @@ public class CollectionLazyDataModel<T> extends LazyDataModel<T> {
 		boolean match;
 		if (fieldValue == null) {
 			fieldValue = "";
-		} 
-		
-		
+		}
+
 		if (Objects.equals(fieldValue.getClass(), Boolean.class)
 				|| Objects.equals(fieldValue.getClass(), boolean.class)) {
 			Boolean filterVal = filterValue.equalsIgnoreCase("1")
@@ -310,5 +315,10 @@ public class CollectionLazyDataModel<T> extends LazyDataModel<T> {
 		}
 		return fieldValue.toLowerCase()
 				.contains(filterValue.toLowerCase());
+	}
+
+	@Override
+	public int count(Map<String, FilterMeta> filterMeta) {
+		return getFiltredData(filterMeta).size();
 	}
 }

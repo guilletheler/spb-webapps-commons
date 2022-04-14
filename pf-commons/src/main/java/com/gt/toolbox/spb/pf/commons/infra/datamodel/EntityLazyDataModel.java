@@ -135,6 +135,22 @@ public class EntityLazyDataModel<E> extends LazyDataModel<E> {
 
 	private List<E> filterAndSort(int first, int pageSize, Map<String, FilterMeta> filters, Sort sort) {
 
+		Map<String, String> filtersMap = buildFiltersMap(filters);
+
+		Page<E> page = filler.findByFilter(filtersMap, PageRequest.of(first / pageSize, pageSize, sort));
+
+		if (page == null) {
+			throw new RuntimeException("La página resultó nula, fist: " + first + " pageSize = " + pageSize);
+		}
+
+		this.setRowCount(((Number) page.getTotalElements()).intValue());
+
+		this.setWrappedData(page.getContent());
+
+		return page.getContent();
+	}
+
+	private Map<String, String> buildFiltersMap(Map<String, FilterMeta> filters) {
 		Map<String, String> filtersMap = new HashMap<>();
 
 		if (staticFilters != null) {
@@ -150,18 +166,7 @@ public class EntityLazyDataModel<E> extends LazyDataModel<E> {
 				filtersMap.put(entry.getKey(), entry.getValue().getFilterValue().toString());
 			}
 		}
-
-		Page<E> page = filler.findByFilter(filtersMap, PageRequest.of(first / pageSize, pageSize, sort));
-
-		if (page == null) {
-			throw new RuntimeException("La página resultó nula, fist: " + first + " pageSize = " + pageSize);
-		}
-
-		this.setRowCount(((Number) page.getTotalElements()).intValue());
-
-		this.setWrappedData(page.getContent());
-
-		return page.getContent();
+		return filtersMap;
 	}
 
 	private static Direction getDirection(SortOrder order) {
@@ -243,6 +248,12 @@ public class EntityLazyDataModel<E> extends LazyDataModel<E> {
 			}
 		}
 		return null;
+	}
+
+	@Override
+	public int count(Map<String, FilterMeta> filters) {
+		
+		return this.filler.countByFilter(this.buildFiltersMap(filters));
 	}
 
 }
