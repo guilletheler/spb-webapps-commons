@@ -5,8 +5,13 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.logging.Logger;
 import java.util.Objects;
 import java.util.stream.Collectors;
+
+import com.gt.toolbox.spb.webapps.commons.infra.model.IWithId;
+
+import org.springframework.data.repository.CrudRepository;
 
 public class CollectionsDtoUtils {
 
@@ -48,6 +53,7 @@ public class CollectionsDtoUtils {
 
         if (dtoCollection != null) {
             for (D dto : dtoCollection) {
+
                 // Busco el dto en la colección de entidades
                 E entity = entityCollection.stream().filter(e -> converter.sameKey(e, dto)).findFirst().orElse(null);
 
@@ -66,6 +72,38 @@ public class CollectionsDtoUtils {
 
     }
 
+    public static <ID, E extends IWithId<ID>, D extends IWithId<ID>> Collection<E> synchronize(
+            Collection<E> entityCollection, Collection<D> dtoCollection,
+            DtoConverter<E, D> converter, CrudRepository<E, ID> repo) {
+
+        List<E> toRemove = findEntitiesToRemove(entityCollection, dtoCollection);
+
+        entityCollection.removeAll(toRemove);
+
+        if (dtoCollection != null) {
+            for (D dto : dtoCollection) {
+
+                // Busco el dto en la colección de entidades
+
+                E entity = entityCollection.stream().filter(e -> e.getId().equals(dto.getId())).findFirst()
+                        .orElse(null);
+
+                if (entity == null) {
+                    entity = repo.findById(dto.getId()).orElse(null);
+                    if (entity != null) {
+                        entityCollection.add(entity);
+                    } else {
+                        Logger.getLogger(CollectionsDtoUtils.class.getName()).warning(
+                                "No se encontró la entidad con id " + dto.getId());
+                    }
+                }
+            }
+        }
+
+        return entityCollection;
+
+    }
+
     public static <E, D> List<E> findToRemove(Collection<E> entityCollection, Collection<D> dtoCollection,
             DtoConverter<E, D> converter) {
         List<E> toRemove = new ArrayList<>();
@@ -73,6 +111,19 @@ public class CollectionsDtoUtils {
         for (E entity : entityCollection) {
 
             if (dtoCollection.stream().noneMatch(dto -> converter.sameKey(entity, dto))) {
+                toRemove.add(entity);
+            }
+        }
+        return toRemove;
+    }
+
+    public static <ID, E extends IWithId<ID>, D extends IWithId<ID>> List<E> findEntitiesToRemove(
+            Collection<E> entityCollection, Collection<D> dtoCollection) {
+        List<E> toRemove = new ArrayList<>();
+
+        for (E entity : entityCollection) {
+
+            if (dtoCollection.stream().noneMatch(dto -> entity.getId().equals(dto.getId()))) {
                 toRemove.add(entity);
             }
         }
