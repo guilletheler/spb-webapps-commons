@@ -36,7 +36,7 @@ public class QueryHelper {
 			boolean concatUsingAnd) {
 
 		return (Root<T> root, CriteriaQuery<?> query, CriteriaBuilder builder) -> {
-			query.distinct(true);
+			//query.distinct(true);
 			return buildPredicate(filterValues, root, builder, concatUsingAnd);
 		};
 	}

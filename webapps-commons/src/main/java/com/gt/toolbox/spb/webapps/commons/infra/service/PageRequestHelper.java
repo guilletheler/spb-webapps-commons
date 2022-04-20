@@ -20,7 +20,7 @@ public class PageRequestHelper {
 
     public static Pageable toPageable(PageRequest pageRequest) {
 
-        if(pageRequest == null) {
+        if (pageRequest == null) {
             return Pageable.unpaged();
         }
 
@@ -33,14 +33,17 @@ public class PageRequestHelper {
         }
 
         if (pageRequest.getFirst() > 0 && pageRequest.getRows() >= 0
-                && pageRequest.getRows() % pageRequest.getFirst() != 0) {
+                && pageRequest.getFirst() % pageRequest.getRows() != 0) {
             throw new IllegalArgumentException(
-                    "el primer elemento debe ser multiplo de la cantidad de elementos por pagina");
+                    "el primer elemento debe ser multiplo de la cantidad de elementos por pagina, first: "
+                            + pageRequest.getFirst() + ", rows: " + pageRequest.getRows() +
+                            " first % rows = " + (pageRequest.getFirst() % pageRequest.getRows()));
         }
         Sort sorts = null;
 
-        if(pageRequest.getSortField() != null && pageRequest.getSortDirection() != null) {
-            Sort.Direction direction = pageRequest.getSortDirection() == SortDirection.ASC ? Sort.Direction.ASC : Sort.Direction.DESC;
+        if (pageRequest.getSortField() != null && pageRequest.getSortDirection() != null) {
+            Sort.Direction direction = pageRequest.getSortDirection() == SortDirection.ASC ? Sort.Direction.ASC
+                    : Sort.Direction.DESC;
             sorts = Sort.by(direction, pageRequest.getSortField());
         } else if (pageRequest.getMultiSortMeta() == null || pageRequest.getMultiSortMeta().length == 0) {
             if (pageRequest.getSortField() != null && !pageRequest.getSortField().isEmpty()) {
@@ -98,7 +101,7 @@ public class PageRequestHelper {
 
     public static <T> Specification<T> toSpecification(PageRequest pageRequest) {
         return (Root<T> root, CriteriaQuery<?> query, CriteriaBuilder builder) -> {
-            query.distinct(true);
+            //query.distinct(true);
             return buildPredicate(pageRequest, root, builder);
         };
     }
@@ -171,7 +174,8 @@ public class PageRequestHelper {
                     "se esperaba un filtro con nombre de campo y valor o con operador y lista de filtros");
         }
 
-        // Logger.getLogger(PageRequestHelper.class.getName()).info("procesando : " + filter);
+        // Logger.getLogger(PageRequestHelper.class.getName()).info("procesando : " +
+        // filter);
 
         return ret;
 
