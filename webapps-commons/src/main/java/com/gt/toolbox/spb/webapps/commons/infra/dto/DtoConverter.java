@@ -4,6 +4,6 @@ public interface DtoConverter<E, D> {
     D toDto(E entity);
     D forList(E entity);
     E toNewEntity(D dto);
-    E toEntity(E entity, D dto);
+    void toEntity(E entity, D dto);
     boolean sameKey(E entity, D dto);
 }
