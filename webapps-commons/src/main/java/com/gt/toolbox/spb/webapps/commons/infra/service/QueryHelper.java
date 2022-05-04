@@ -240,7 +240,7 @@ public class QueryHelper {
 			// Logger.getLogger(QueryHelper.class.getName()).log(Level.INFO,
 			// "Generando predicado de decimal para " + value);
 
-			Expression<Number> numberExpression = path.as(Number.class);
+			Expression<BigDecimal> numberExpression = path.as(BigDecimal.class);
 
 			Double tmpDoubleValue;
 			String tmpString = "";
