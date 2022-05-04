@@ -274,7 +274,7 @@ public class QueryHelper {
 
 		if (isIntegerClass(path.getJavaType())) {
 
-			Expression<Number> numberExpression = path.as(Number.class);
+			Expression<BigInteger> numberExpression = path.as(BigInteger.class);
 
 			// Logger.getLogger(QueryHelper.class.getName()).log(Level.INFO,
 			// "Generando predicado de entero para " + value);
