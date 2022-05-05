@@ -242,23 +242,23 @@ public class QueryHelper {
 
 			Expression<BigDecimal> numberExpression = path.as(BigDecimal.class);
 
-			Double tmpDoubleValue;
+			BigDecimal tmpDoubleValue;
 			String tmpString = "";
 
 			try {
 				if (value.startsWith("0") || value.startsWith("=")) {
 					tmpString = value.substring(1).trim().replace(",", ".");
-					tmpDoubleValue = Double.valueOf(tmpString);
+					tmpDoubleValue = BigDecimal.valueOf(Double.valueOf(tmpString));
 					return Optional.of(builder.equal(numberExpression, tmpDoubleValue));
 				}
 				if (value.startsWith("<")) {
 					tmpString = value.substring(1).trim().replace(",", ".");
-					tmpDoubleValue = Double.valueOf(tmpString);
+					tmpDoubleValue = BigDecimal.valueOf(Double.valueOf(tmpString));
 					return Optional.of(builder.le(numberExpression, tmpDoubleValue));
 				}
 				if (value.startsWith(">")) {
 					tmpString = value.substring(1).trim().replace(",", ".");
-					tmpDoubleValue = Double.valueOf(tmpString);
+					tmpDoubleValue = BigDecimal.valueOf(Double.valueOf(tmpString));
 					return Optional.of(builder.ge(numberExpression, tmpDoubleValue));
 				}
 			} catch (NumberFormatException ex) {
@@ -279,23 +279,23 @@ public class QueryHelper {
 			// Logger.getLogger(QueryHelper.class.getName()).log(Level.INFO,
 			// "Generando predicado de entero para " + value);
 
-			Long tmpLongValue;
+			BigInteger tmpLongValue;
 			String tmpString = "";
 
 			try {
 				if (value.startsWith("0") || value.startsWith("=")) {
 					tmpString = value.substring(1).trim();
-					tmpLongValue = Long.valueOf(tmpString);
+					tmpLongValue = BigInteger.valueOf(Long.valueOf(tmpString));
 					return Optional.of(builder.equal(numberExpression, tmpLongValue));
 				}
 				if (value.startsWith("<")) {
 					tmpString = value.substring(1).trim();
-					tmpLongValue = Long.valueOf(tmpString);
+					tmpLongValue = BigInteger.valueOf(Long.valueOf(tmpString));
 					return Optional.of(builder.le(numberExpression, tmpLongValue));
 				}
 				if (value.startsWith(">")) {
 					tmpString = value.substring(1).trim();
-					tmpLongValue = Long.valueOf(tmpString);
+					tmpLongValue = BigInteger.valueOf(Long.valueOf(tmpString));
 					return Optional.of(builder.ge(numberExpression, tmpLongValue));
 				}
 			} catch (NumberFormatException ex) {
