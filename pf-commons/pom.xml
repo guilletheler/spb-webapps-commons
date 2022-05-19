@@ -42,6 +42,13 @@
 			<version>${primefaces.version}</version>
 			<scope>provided</scope>
 		</dependency>
+		<!--
+		<dependency>
+			<groupId>org.webjars</groupId>
+			<artifactId>font-awesome</artifactId>
+			<version>5.15.1</version>
+		</dependency>
+		-->
 		<!-- https://mvnrepository.com/artifact/org.apache.commons/commons-lang3 -->
 		<dependency>
 			<groupId>org.apache.commons</groupId>
