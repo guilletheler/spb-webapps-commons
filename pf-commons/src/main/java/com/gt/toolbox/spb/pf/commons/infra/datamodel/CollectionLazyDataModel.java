@@ -317,9 +317,9 @@ public class CollectionLazyDataModel<T> extends LazyDataModel<T> {
 				.contains(filterValue.toLowerCase());
 	}
 
-	// Necesario para PRIMEFACES 11
-	// @Override
-	// public int count(Map<String, FilterMeta> filterMeta) {
-	// 	return getFiltredData(filterMeta).size();
-	// }
+	//Necesario para PRIMEFACES 11
+	@Override
+	public int count(Map<String, FilterMeta> filterMeta) {
+		return getFiltredData(filterMeta).size();
+	}
 }

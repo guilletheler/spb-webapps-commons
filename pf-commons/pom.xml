@@ -11,7 +11,7 @@
 		<maven.compiler.source>${java.version}</maven.compiler.source>
 		<maven.compiler.target>${java.version}</maven.compiler.target>
 		<spring.data.jpa.version>2.6.0</spring.data.jpa.version>
-		<primefaces.version>10.0.0</primefaces.version>
+		<primefaces.version>11.0.0</primefaces.version>
 		<lombok.version>1.18.22</lombok.version>
 		<apache.commons.lang3.version>3.12.0</apache.commons.lang3.version>
 	</properties>

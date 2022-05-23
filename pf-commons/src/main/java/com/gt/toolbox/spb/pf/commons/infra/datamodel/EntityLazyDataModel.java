@@ -116,12 +116,17 @@ public class EntityLazyDataModel<E> extends LazyDataModel<E> {
 	@Override
 	public List<E> load(int first, int pageSize, Map<String, SortMeta> multiSortMeta, Map<String, FilterMeta> filters) {
 
-		Sort sort = Sort.by(getDirection(DEFAULT_SORT_ORDER), getDefaultSortField());
+		Sort sort = null;
 
-		if (multiSortMeta != null) {
+		if (getDefaultSortField() != null && getDefaultSortField().isEmpty()) {
+			sort = Sort.by(getDirection(DEFAULT_SORT_ORDER), getDefaultSortField());
+		}
+
+		if (multiSortMeta != null && !multiSortMeta.isEmpty()) {
 			List<Order> orders = multiSortMeta.values().stream()
 					.map(m -> new Order(getDirection(m.getOrder() != null ? m.getOrder() : DEFAULT_SORT_ORDER),
 							m.getField()))
+					.filter(m -> m.getProperty() != null && !m.getProperty().isEmpty())
 					.collect(Collectors.toList());
 			// List<Order> orders = multiSortMeta.values().stream()
 			// .map(m -> new Order(getDirection(m.getSortOrder() != null ? m.getSortOrder()
@@ -130,6 +135,7 @@ public class EntityLazyDataModel<E> extends LazyDataModel<E> {
 			// .collect(Collectors.toList());
 			sort = Sort.by(orders);
 		}
+
 		return filterAndSort(first, pageSize, filters, sort);
 	}
 
@@ -137,7 +143,12 @@ public class EntityLazyDataModel<E> extends LazyDataModel<E> {
 
 		Map<String, String> filtersMap = buildFiltersMap(filters);
 
-		Page<E> page = filler.findByFilter(filtersMap, PageRequest.of(first / pageSize, pageSize, sort));
+		Page<E> page;
+		if (sort == null) {
+			page = filler.findByFilter(filtersMap, PageRequest.of(first / pageSize, pageSize));
+		} else {
+			page = filler.findByFilter(filtersMap, PageRequest.of(first / pageSize, pageSize, sort));
+		}
 
 		if (page == null) {
 			throw new RuntimeException("La página resultó nula, fist: " + first + " pageSize = " + pageSize);
@@ -155,14 +166,16 @@ public class EntityLazyDataModel<E> extends LazyDataModel<E> {
 
 		if (staticFilters != null) {
 			for (Map.Entry<String, FilterMeta> entry : staticFilters.entrySet()) {
-				if (entry.getValue().getFilterValue() != null) {
+				if (entry.getKey() != null && !entry.getKey().isEmpty() && entry.getValue().getFilterValue() != null
+						&& !entry.getValue().getFilterValue().toString().isEmpty()) {
 					filtersMap.put(entry.getKey(), entry.getValue().getFilterValue().toString());
 				}
 			}
 		}
 
 		for (Map.Entry<String, FilterMeta> entry : filters.entrySet()) {
-			if (entry.getValue().getFilterValue() != null) {
+			if (entry.getKey() != null && !entry.getKey().isEmpty() && entry.getValue().getFilterValue() != null
+					&& !entry.getValue().getFilterValue().toString().isEmpty()) {
 				filtersMap.put(entry.getKey(), entry.getValue().getFilterValue().toString());
 			}
 		}
@@ -185,7 +198,7 @@ public class EntityLazyDataModel<E> extends LazyDataModel<E> {
 
 	private Method getColumnKeyGetterMethod() {
 
-		if (columnKeyGetterMethod == null) {
+		if (columnKeyGetterMethod == null && entityClass != null) {
 
 			String getIdMethodName = null;
 
@@ -199,6 +212,9 @@ public class EntityLazyDataModel<E> extends LazyDataModel<E> {
 				columnKeyGetterMethod = entityClass.getMethod(getIdMethodName);
 			} catch (NoSuchMethodException | SecurityException e) {
 				Logger.getLogger(getClass().getName()).log(Level.SEVERE, "Error al getColumnKeyMethod", e);
+			} catch (NullPointerException ex) {
+				Logger.getLogger(getClass().getName()).log(Level.SEVERE,
+						"Error al getColumnKeyMethod " + getIdMethodName + " para " + entityClass.getName(), ex);
 			}
 		}
 
@@ -251,9 +267,9 @@ public class EntityLazyDataModel<E> extends LazyDataModel<E> {
 	}
 
 	// Necesario para PRIMEFACES 11
-	// @Override
-	// public int count(Map<String, FilterMeta> filters) {
-	// 	return this.filler.countByFilter(this.buildFiltersMap(filters));
-	// }
+	@Override
+	public int count(Map<String, FilterMeta> filters) {
+		return this.filler.countByFilter(this.buildFiltersMap(filters));
+	}
 
 }
