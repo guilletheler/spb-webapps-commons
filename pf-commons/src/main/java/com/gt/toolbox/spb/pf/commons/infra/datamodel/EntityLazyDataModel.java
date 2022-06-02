@@ -269,7 +269,7 @@ public class EntityLazyDataModel<E> extends LazyDataModel<E> {
 	// Necesario para PRIMEFACES 11
 	@Override
 	public int count(Map<String, FilterMeta> filters) {
-		return this.filler.countByFilter(this.buildFiltersMap(filters));
+		return (int) this.filler.countByFilter(this.buildFiltersMap(filters));
 	}
 
 }

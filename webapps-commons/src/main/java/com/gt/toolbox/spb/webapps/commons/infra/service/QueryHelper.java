@@ -10,8 +10,6 @@ import java.util.Date;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -22,9 +20,9 @@ import javax.persistence.criteria.Path;
 import javax.persistence.criteria.Predicate;
 import javax.persistence.criteria.Root;
 
-import com.gt.toolbox.spb.webapps.commons.infra.utils.Utils;
-
 import org.springframework.data.jpa.domain.Specification;
+
+import com.gt.toolbox.spb.webapps.commons.infra.utils.Utils;
 
 public class QueryHelper {
 
@@ -262,8 +260,8 @@ public class QueryHelper {
 					return Optional.of(builder.ge(numberExpression, tmpDoubleValue));
 				}
 			} catch (NumberFormatException ex) {
-				Logger.getLogger(QueryHelper.class.getName()).log(Level.WARNING,
-						"No se puede convertir tmpString '" + tmpString + "' a decimal, entrada '" + value + "'");
+				// Logger.getLogger(QueryHelper.class.getName()).log(Level.WARNING,
+				// 		"No se puede convertir tmpString '" + tmpString + "' a decimal, entrada '" + value + "'");
 			}
 		}
 		return Optional.empty();
@@ -299,8 +297,8 @@ public class QueryHelper {
 					return Optional.of(builder.ge(numberExpression, tmpLongValue));
 				}
 			} catch (NumberFormatException ex) {
-				Logger.getLogger(QueryHelper.class.getName()).log(Level.WARNING,
-						"No se puede convertir tmpString '" + tmpString + "' a integer, entrada '" + value + "'");
+				// Logger.getLogger(QueryHelper.class.getName()).log(Level.WARNING,
+				// 		"No se puede convertir tmpString '" + tmpString + "' a integer, entrada '" + value + "'");
 			}
 		}
 
