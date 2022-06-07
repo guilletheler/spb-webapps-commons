@@ -16,6 +16,7 @@ import java.util.stream.Stream;
 import javax.persistence.criteria.CriteriaBuilder;
 import javax.persistence.criteria.CriteriaQuery;
 import javax.persistence.criteria.Expression;
+import javax.persistence.criteria.JoinType;
 import javax.persistence.criteria.Path;
 import javax.persistence.criteria.Predicate;
 import javax.persistence.criteria.Root;
@@ -34,7 +35,7 @@ public class QueryHelper {
 			boolean concatUsingAnd) {
 
 		return (Root<T> root, CriteriaQuery<?> query, CriteriaBuilder builder) -> {
-			//query.distinct(true);
+			// query.distinct(true);
 			return buildPredicate(filterValues, root, builder, concatUsingAnd);
 		};
 	}
@@ -66,14 +67,18 @@ public class QueryHelper {
 
 	public static <T> Predicate buildPredicate(Root<T> root, CriteriaBuilder builder, String originalKey,
 			String value) {
-		// lo meto dentro de un arreglo para que qude final y se pueda usar dentro de
+		// lo meto dentro de un arreglo para que quede final y se pueda usar dentro de
 		// las expresiones lambda
 		Path<?> path[] = new Path[] { root };
 
 		String[] splitKey = originalKey.split("\\.");
 
-		for (String key : splitKey) {
-			path[0] = path[0].get(key);
+		for (int i = 0; i < splitKey.length; i++) {
+			if (i == 0 && splitKey.length > 1) {
+				path[0] = root.join(splitKey[i], JoinType.LEFT);
+			} else {
+				path[0] = path[0].get(splitKey[i]);
+			}
 		}
 
 		Predicate ret = buildIntegerPredicate(builder, path[0], value)
@@ -153,22 +158,23 @@ public class QueryHelper {
 	 * @param key
 	 * @param value
 	 * @return
-	 public Optional<Predicate> buildCollectionPredicate(CriteriaBuilder builder, Path<?> path, String value) {
-		 
-		Predicate ret = null;
-
-		if (Collection.class.isAssignableFrom(path.getJavaType())) {
-			Class<?> clazz = ((Class<?>) ((ParameterizedType) path.getJavaType()
-					.getGenericSuperclass()).getActualTypeArguments()[0]);
-
-			CriteriaQuery<?> query = builder.createQuery(clazz);
-			Root<?> collectionRoot = query.from(clazz);
-
-		}
-		
-		return Optional.empty();
-	}
-	*/
+	 *         public Optional<Predicate> buildCollectionPredicate(CriteriaBuilder
+	 *         builder, Path<?> path, String value) {
+	 * 
+	 *         Predicate ret = null;
+	 * 
+	 *         if (Collection.class.isAssignableFrom(path.getJavaType())) {
+	 *         Class<?> clazz = ((Class<?>) ((ParameterizedType) path.getJavaType()
+	 *         .getGenericSuperclass()).getActualTypeArguments()[0]);
+	 * 
+	 *         CriteriaQuery<?> query = builder.createQuery(clazz);
+	 *         Root<?> collectionRoot = query.from(clazz);
+	 * 
+	 *         }
+	 * 
+	 *         return Optional.empty();
+	 *         }
+	 */
 
 	public static Optional<Predicate> buildDatePredicate(CriteriaBuilder builder, Path<?> path,
 			String value) {
@@ -261,7 +267,8 @@ public class QueryHelper {
 				}
 			} catch (NumberFormatException ex) {
 				// Logger.getLogger(QueryHelper.class.getName()).log(Level.WARNING,
-				// 		"No se puede convertir tmpString '" + tmpString + "' a decimal, entrada '" + value + "'");
+				// "No se puede convertir tmpString '" + tmpString + "' a decimal, entrada '" +
+				// value + "'");
 			}
 		}
 		return Optional.empty();
@@ -298,7 +305,8 @@ public class QueryHelper {
 				}
 			} catch (NumberFormatException ex) {
 				// Logger.getLogger(QueryHelper.class.getName()).log(Level.WARNING,
-				// 		"No se puede convertir tmpString '" + tmpString + "' a integer, entrada '" + value + "'");
+				// "No se puede convertir tmpString '" + tmpString + "' a integer, entrada '" +
+				// value + "'");
 			}
 		}
 

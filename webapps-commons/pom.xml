@@ -18,7 +18,7 @@
 		<spring.security.core.version>5.6.1</spring.security.core.version>
 		<javax.persistence.api.version>2.2</javax.persistence.api.version>
 		<omnifaces.version>3.12</omnifaces.version>
-		<lombok.version>1.18.22</lombok.version>
+		<lombok.version>1.18.24</lombok.version>
 		<jackson.version>2.13.2</jackson.version>
 	</properties>
 
