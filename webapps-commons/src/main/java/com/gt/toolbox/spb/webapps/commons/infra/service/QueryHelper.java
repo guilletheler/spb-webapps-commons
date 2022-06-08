@@ -229,9 +229,20 @@ public class QueryHelper {
 
 		if (Objects.equals(path.getJavaType(), boolean.class)
 				|| Objects.equals(path.getJavaType(), Boolean.class)) {
-			Boolean valor = value.trim().equalsIgnoreCase("s") || value.trim().equalsIgnoreCase("si")
-					|| value.trim().equalsIgnoreCase("t") || value.trim().equalsIgnoreCase("true");
-			return Optional.of(builder.equal(path, valor));
+			Boolean valor = value.trim().equalsIgnoreCase("si")
+					|| value.trim().equalsIgnoreCase("true");
+
+			if (valor) {
+				return Optional.of(builder.equal(path, Boolean.TRUE));
+			}
+
+			valor = value.trim().equalsIgnoreCase("no")
+					|| value.trim().equalsIgnoreCase("false");
+
+			if (valor) {
+				return Optional.of(builder.equal(path, Boolean.FALSE));
+			}
+
 		}
 		return Optional.empty();
 	}
