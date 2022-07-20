@@ -33,7 +33,7 @@ public class LazySorter<T> implements Comparator<T> {
 			@SuppressWarnings({ "unchecked", "rawtypes" })
 			int value = ((Comparable) value1).compareTo(value2);
 
-			if(Optional.of(sortOrder).orElse(0) >= 0) {
+			if(Optional.ofNullable(sortOrder).orElse(0) >= 0) {
 				value = value * -1;
 			}
 

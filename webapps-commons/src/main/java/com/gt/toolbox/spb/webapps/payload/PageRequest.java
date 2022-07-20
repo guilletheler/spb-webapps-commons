@@ -28,15 +28,16 @@ public class PageRequest implements Serializable {
      */
     private static final long serialVersionUID = 1L;
 
-    Integer first;
-    Integer rows;
-    String sortField;
-    SortMeta.SortDirection sortDirection;
+    private Integer first;
+    private Integer rows;
+    private String sortField;
+    private SortMeta.SortDirection sortDirection;
 
-    SortMeta[] multiSortMeta;
+    private SortMeta[] multiSortMeta;
 
-    FilterMeta filter;
+    private FilterMeta filter;
 
-    String globalFilter;
-    
+    private String globalFilter;
+
+    private EntityDetailLevel detailLevel;    
 }

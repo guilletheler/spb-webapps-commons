@@ -184,13 +184,13 @@ public class QueryHelper {
 
 			if (value.trim().startsWith("-") || value.trim().startsWith(">")) {
 				Date fechaIni = QueryHelper.parseDate(value.trim().substring(1).trim());
-				return Optional.of(builder.greaterThanOrEqualTo(dateExpression, fechaIni));
+				return Optional.ofNullable(builder.greaterThanOrEqualTo(dateExpression, fechaIni));
 			} else if (value.trim().startsWith("<")) {
 				Date fechaFin = QueryHelper.parseDate(value.trim().substring(1).trim());
-				return Optional.of(builder.lessThanOrEqualTo(dateExpression, fechaFin));
+				return Optional.ofNullable(builder.lessThanOrEqualTo(dateExpression, fechaFin));
 			} else if (value.trim().endsWith("-")) {
 				Date fechaFin = QueryHelper.parseDate(value.trim().substring(0, value.trim().length() - 1).trim());
-				return Optional.of(builder.lessThanOrEqualTo(dateExpression, fechaFin));
+				return Optional.ofNullable(builder.lessThanOrEqualTo(dateExpression, fechaFin));
 			} else if (value.trim().contains("-")) {
 				// Supongo un between
 
@@ -210,12 +210,12 @@ public class QueryHelper {
 					fechaFin = QueryHelper.parseDate("01/01/2100");
 				}
 
-				return Optional.of(builder.between(dateExpression, fechaIni, fechaFin));
+				return Optional.ofNullable(builder.between(dateExpression, fechaIni, fechaFin));
 				// return null;
 
 			} else {
 
-				return Optional.of(builder.like(builder.function("TO_CHAR", String.class, dateExpression,
+				return Optional.ofNullable(builder.like(builder.function("TO_CHAR", String.class, dateExpression,
 						builder.literal("dd/MM/yyyy HH24:MI:ss")), "%" + value + "%"));
 
 			}
@@ -233,14 +233,14 @@ public class QueryHelper {
 					|| value.trim().equalsIgnoreCase("true");
 
 			if (valor) {
-				return Optional.of(builder.equal(path, Boolean.TRUE));
+				return Optional.ofNullable(builder.equal(path, Boolean.TRUE));
 			}
 
 			valor = value.trim().equalsIgnoreCase("no")
 					|| value.trim().equalsIgnoreCase("false");
 
 			if (valor) {
-				return Optional.of(builder.equal(path, Boolean.FALSE));
+				return Optional.ofNullable(builder.equal(path, Boolean.FALSE));
 			}
 
 		}
@@ -264,17 +264,17 @@ public class QueryHelper {
 				if (value.startsWith("0") || value.startsWith("=")) {
 					tmpString = value.substring(1).trim().replace(",", ".");
 					tmpDoubleValue = BigDecimal.valueOf(Double.valueOf(tmpString));
-					return Optional.of(builder.equal(numberExpression, tmpDoubleValue));
+					return Optional.ofNullable(builder.equal(numberExpression, tmpDoubleValue));
 				}
 				if (value.startsWith("<")) {
 					tmpString = value.substring(1).trim().replace(",", ".");
 					tmpDoubleValue = BigDecimal.valueOf(Double.valueOf(tmpString));
-					return Optional.of(builder.le(numberExpression, tmpDoubleValue));
+					return Optional.ofNullable(builder.le(numberExpression, tmpDoubleValue));
 				}
 				if (value.startsWith(">")) {
 					tmpString = value.substring(1).trim().replace(",", ".");
 					tmpDoubleValue = BigDecimal.valueOf(Double.valueOf(tmpString));
-					return Optional.of(builder.ge(numberExpression, tmpDoubleValue));
+					return Optional.ofNullable(builder.ge(numberExpression, tmpDoubleValue));
 				}
 			} catch (NumberFormatException ex) {
 				// Logger.getLogger(QueryHelper.class.getName()).log(Level.WARNING,
@@ -302,17 +302,17 @@ public class QueryHelper {
 				if (value.startsWith("0") || value.startsWith("=")) {
 					tmpString = value.substring(1).trim();
 					tmpLongValue = BigInteger.valueOf(Long.valueOf(tmpString));
-					return Optional.of(builder.equal(numberExpression, tmpLongValue));
+					return Optional.ofNullable(builder.equal(numberExpression, tmpLongValue));
 				}
 				if (value.startsWith("<")) {
 					tmpString = value.substring(1).trim();
 					tmpLongValue = BigInteger.valueOf(Long.valueOf(tmpString));
-					return Optional.of(builder.le(numberExpression, tmpLongValue));
+					return Optional.ofNullable(builder.le(numberExpression, tmpLongValue));
 				}
 				if (value.startsWith(">")) {
 					tmpString = value.substring(1).trim();
 					tmpLongValue = BigInteger.valueOf(Long.valueOf(tmpString));
-					return Optional.of(builder.ge(numberExpression, tmpLongValue));
+					return Optional.ofNullable(builder.ge(numberExpression, tmpLongValue));
 				}
 			} catch (NumberFormatException ex) {
 				// Logger.getLogger(QueryHelper.class.getName()).log(Level.WARNING,
