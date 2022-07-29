@@ -2,6 +2,7 @@ package com.gt.toolbox.spb.webapps.payload;
 
 import java.io.Serializable;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import lombok.AllArgsConstructor;
@@ -27,5 +28,16 @@ public class SortMeta implements Serializable {
         DESC,
         @JsonProperty("none")
         NONE;
+
+        @JsonCreator
+        public static SortDirection forName(String name) {
+            if (name.equalsIgnoreCase("asc")) {
+                return SortDirection.ASC;
+            } else if (name.equalsIgnoreCase("desc")) {
+                return SortDirection.DESC;
+            } else {
+                return SortDirection.NONE;
+            }
+        }
     }
 }
