@@ -130,6 +130,10 @@ public class PageRequestHelper {
              */
             ret = QueryHelper.buildPredicate(root, builder, filter.getFieldName(), filter.getValue());
 
+            if(filter.getOperator().equalsIgnoreCase("not")) {
+                ret = builder.not(ret);
+            }
+
         } else if (filter.getOperator() != null && !filter.getOperator().isEmpty()
                 && filter.getChildrens() != null && filter.getChildrens().size() > 0) {
 
