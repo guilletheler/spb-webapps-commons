@@ -101,7 +101,7 @@ public class PageRequestHelper {
 
     public static <T> Specification<T> toSpecification(PageRequest pageRequest) {
         return (Root<T> root, CriteriaQuery<?> query, CriteriaBuilder builder) -> {
-            //query.distinct(true);
+            // query.distinct(true);
             return buildPredicate(pageRequest, root, builder);
         };
     }
@@ -130,7 +130,7 @@ public class PageRequestHelper {
              */
             ret = QueryHelper.buildPredicate(root, builder, filter.getFieldName(), filter.getValue());
 
-            if(filter.getOperator().equalsIgnoreCase("not")) {
+            if (filter.getOperator() != null && filter.getOperator().equalsIgnoreCase("not")) {
                 ret = builder.not(ret);
             }
 
