@@ -233,14 +233,14 @@ public class QueryHelper {
 					|| value.trim().equalsIgnoreCase("true");
 
 			if (valor) {
-				return Optional.ofNullable(builder.equal(path, Boolean.TRUE));
+				return Optional.ofNullable(builder.equal(builder.coalesce(path, Boolean.FALSE), Boolean.TRUE));
 			}
 
 			valor = value.trim().equalsIgnoreCase("no")
 					|| value.trim().equalsIgnoreCase("false");
 
 			if (valor) {
-				return Optional.ofNullable(builder.equal(path, Boolean.FALSE));
+				return Optional.ofNullable(builder.equal(builder.coalesce(path, Boolean.FALSE), Boolean.FALSE));
 			}
 
 		}
