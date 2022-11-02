@@ -5,6 +5,7 @@ import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
@@ -30,7 +31,7 @@ public class Utils implements Serializable {
 	private static final long serialVersionUID = 1L;
 
 	public static final SimpleDateFormat SDF_ISO_HMS = new SimpleDateFormat("HHmmss");
-	
+
 	public static final SimpleDateFormat SDF_ISO_HM = new SimpleDateFormat("HHmm");
 
 	public static final SimpleDateFormat SDF_HMS = new SimpleDateFormat("HH:mm:ss");
@@ -67,9 +68,9 @@ public class Utils implements Serializable {
 	public static final DecimalFormat DF_2E = new DecimalFormat("00");
 
 	public static final DecimalFormat DF_4E = new DecimalFormat("0000");
-	
+
 	public static final DecimalFormat DF_5E = new DecimalFormat("00000");
-	
+
 	public static final DecimalFormat DF_8E = new DecimalFormat("00000000");
 
 	public static final DecimalFormat DF_2D = new DecimalFormat("0.00");
@@ -155,7 +156,7 @@ public class Utils implements Serializable {
 		}
 		return Integer.valueOf(SDF_ISO_YYMD.format(fecha));
 	}
-	
+
 	public static String[] separar(String descripcion, int largo, int delta) {
 		if (descripcion == null || descripcion.isEmpty()) {
 			return new String[] { "" };
@@ -164,8 +165,8 @@ public class Utils implements Serializable {
 		List<String> ret = new ArrayList<>();
 
 		String string = descripcion;
-		
-		while(string.length() > 0) {
+
+		while (string.length() > 0) {
 			String tmp = getLine(string, largo, delta);
 			ret.add(tmp.trim());
 			string = string.substring(tmp.length());
@@ -194,5 +195,34 @@ public class Utils implements Serializable {
 		}
 
 		return ret;
+	}
+
+	public static String getExceptionNotificationText(Exception ex) {
+		return getExceptionNotificationText(ex, null);
+	}
+
+	public static String getExceptionNotificationText(Exception ex, String packageName) {
+		StringBuilder sb = new StringBuilder();
+
+		sb.append("Excepción ")
+				.append(ex.getClass().getSimpleName())
+				.append("\n")
+				.append(ex.getMessage());
+		if (!ex.getMessage().equals(ex.getLocalizedMessage())) {
+			sb.append("\n")
+					.append(ex.getLocalizedMessage());
+		}
+		var ste = Arrays.asList(ex.getStackTrace())
+				.stream()
+				.filter(st -> packageName == null || st.getClassName().startsWith(packageName))
+				.findFirst()
+				.orElse(null);
+
+		if (ste != null) {
+			sb.append("\n")
+					.append(ste.getClassName() + "." + ste.getMethodName() + ":" + ste.getLineNumber());
+
+		}
+		return sb.toString();
 	}
 }
