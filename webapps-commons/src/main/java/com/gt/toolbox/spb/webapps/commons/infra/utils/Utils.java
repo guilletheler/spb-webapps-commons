@@ -11,6 +11,9 @@ import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 import javax.faces.application.FacesMessage;
 
@@ -224,5 +227,34 @@ public class Utils implements Serializable {
 
 		}
 		return sb.toString();
+	}
+
+	public static void logError(Class<?> clazz, Exception ex) {
+		String msg = buildErrorMsg(ex);
+		Logger.getLogger(clazz.getName()).log(Level.WARNING, msg);
+	}
+
+	private static String buildErrorMsg(Throwable ex) {
+		String msg = ex.getClass().getName() + "\n" + ex.getMessage() + "\n"
+				+ filterStackTrace(ex).stream()
+						.map(ste -> ste.getClassName() + "." + ste.getMethodName() + ":" + ste.getLineNumber())
+						.collect(Collectors.joining("\n\t"));
+		if (ex.getCause() != null) {
+			msg += "\n---cause---\n\t" + buildErrorMsg(ex.getCause());
+		}
+		return msg;
+	}
+
+	public static List<StackTraceElement> filterStackTrace(Throwable ex) {
+		return filterStackTrace(ex, "com.gt");
+	}
+
+	public static List<StackTraceElement> filterStackTrace(Throwable ex, String packageName) {
+		var steList = Arrays.asList(ex.getStackTrace())
+				.stream()
+				.filter(st -> packageName == null || st.getClassName().startsWith(packageName))
+				.collect(Collectors.toList());
+
+		return steList;
 	}
 }

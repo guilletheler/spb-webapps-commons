@@ -5,6 +5,7 @@ import java.io.Serializable;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
+import com.gt.toolbox.spb.webapps.commons.infra.utils.EntityDetailLevel;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -39,5 +40,5 @@ public class PageRequest implements Serializable {
 
     private String globalFilter;
 
-    private EntityDetailLevel detailLevel;    
+    private EntityDetailLevel detailLevel;
 }
