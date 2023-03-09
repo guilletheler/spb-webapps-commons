@@ -2,10 +2,10 @@ package com.gt.toolbox.spb.webapps.commons.infra.service;
 
 import java.util.Optional;
 
-import javax.persistence.criteria.CriteriaBuilder;
-import javax.persistence.criteria.CriteriaQuery;
-import javax.persistence.criteria.Predicate;
-import javax.persistence.criteria.Root;
+import jakarta.persistence.criteria.CriteriaBuilder;
+import jakarta.persistence.criteria.CriteriaQuery;
+import jakarta.persistence.criteria.Predicate;
+import jakarta.persistence.criteria.Root;
 
 import com.gt.toolbox.spb.webapps.payload.FilterMeta;
 import com.gt.toolbox.spb.webapps.payload.PageRequest;
@@ -118,8 +118,70 @@ public class PageRequestHelper {
 
     private static <T> Predicate buildPredicate(Root<T> root, CriteriaBuilder builder, FilterMeta filter) {
 
-        Predicate ret = QueryHelper.buildPredicate(root, builder, filter);
+        Predicate ret = null;
+
+        if (filter.getFieldName() != null && !filter.getFieldName().isEmpty() && filter.getValue() != null
+                && !filter.getValue().isEmpty()) {
+
+            // nodo tipo filtro
+
+            /**
+             * Uso QueryHelper porque crea la consulta según tipo de dato
+             */
+            ret = QueryHelper.buildPredicate(root, builder, filter.getFieldName(), filter.getValue());
+
+            if (filter.getOperator() != null && filter.getOperator().equalsIgnoreCase("not")) {
+                ret = builder.not(ret);
+            }
+
+        } else if (filter.getOperator() != null && !filter.getOperator().isEmpty()
+                && filter.getChildrens() != null && filter.getChildrens().size() > 0) {
+
+            // nodo tipo operador
+
+            switch (filter.getOperator().toLowerCase()) {
+                case "and":
+                    Predicate tmpAnd;
+                    for (FilterMeta child : filter.getChildrens()) {
+                        tmpAnd = buildPredicate(root, builder, child);
+                        if (ret == null) {
+                            ret = tmpAnd;
+                        } else {
+                            ret = builder.and(ret, tmpAnd);
+                        }
+                    }
+                    break;
+                case "or":
+                    Predicate tmpOr;
+                    for (FilterMeta child : filter.getChildrens()) {
+                        tmpOr = buildPredicate(root, builder, child);
+                        if (ret == null) {
+                            ret = tmpOr;
+                        } else {
+                            ret = builder.or(ret, tmpOr);
+                        }
+                    }
+                    break;
+                case "not":
+                    if (filter.getChildrens().size() != 1) {
+                        throw new IllegalArgumentException("El operador NOT solo acepta un hijo");
+                    }
+                    ret = builder.not(buildPredicate(root, builder, filter.getChildrens().get(0)));
+                    break;
+                default:
+                    break;
+
+            }
+
+        } else {
+            throw new IllegalArgumentException(
+                    "se esperaba un filtro con nombre de campo y valor o con operador y lista de filtros");
+        }
+
+        // Logger.getLogger(PageRequestHelper.class.getName()).info("procesando : " +
+        // filter);
 
         return ret;
+
     }
 }

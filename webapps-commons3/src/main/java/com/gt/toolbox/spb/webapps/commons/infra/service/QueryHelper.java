@@ -1,203 +1,91 @@
 package com.gt.toolbox.spb.webapps.commons.infra.service;
 
-import java.lang.reflect.Method;
 //import java.lang.reflect.ParameterizedType;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
-import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
-import javax.persistence.Entity;
-import javax.persistence.criteria.CriteriaBuilder;
-import javax.persistence.criteria.CriteriaQuery;
-import javax.persistence.criteria.Expression;
-import javax.persistence.criteria.Join;
-import javax.persistence.criteria.JoinType;
-import javax.persistence.criteria.Path;
-import javax.persistence.criteria.Predicate;
-import javax.persistence.criteria.Root;
+import jakarta.persistence.criteria.CriteriaBuilder;
+import jakarta.persistence.criteria.CriteriaQuery;
+import jakarta.persistence.criteria.Expression;
+import jakarta.persistence.criteria.JoinType;
+import jakarta.persistence.criteria.Path;
+import jakarta.persistence.criteria.Predicate;
+import jakarta.persistence.criteria.Root;
 
-import org.apache.commons.lang3.StringUtils;
 import org.springframework.data.jpa.domain.Specification;
 
 import com.gt.toolbox.spb.webapps.commons.infra.utils.Utils;
-import com.gt.toolbox.spb.webapps.payload.FilterMeta;
 
 public class QueryHelper {
 
-	public static <T> Specification<T> getFilterSpecification(FilterMeta filter) {
+	public static <T> Specification<T> getFilterSpecification(Map<String, String> filterValues) {
+		return getFilterSpecification(filterValues, true);
+	}
+
+	public static <T> Specification<T> getFilterSpecification(Map<String, String> filterValues,
+			boolean concatUsingAnd) {
 
 		return (Root<T> root, CriteriaQuery<?> query, CriteriaBuilder builder) -> {
 			// query.distinct(true);
-
-			return buildPredicate(root, builder, filter);
+			return buildPredicate(filterValues, root, builder, concatUsingAnd);
 		};
 	}
 
-	public static <T> Predicate buildPredicate(Root<T> root, CriteriaBuilder builder, FilterMeta filter) {
-		return buildPredicate(root, builder, filter, new ArrayList<>());
+	public static <T> Predicate buildPredicate(Map<String, String> filterValues, Root<T> root,
+			CriteriaBuilder builder) {
+		return buildPredicate(filterValues, root, builder, true);
 	}
 
-	public static <T> Predicate buildPredicate(Path<?> path, CriteriaBuilder builder, FilterMeta filter) {
-		return buildPredicate(path, builder, filter, new ArrayList<>());
-	}
+	public static <T> Predicate buildPredicate(Map<String, String> filterValues, Root<T> root,
+			CriteriaBuilder builder, boolean concatUsingAnd) {
 
-	private static <T> Predicate buildPredicateAgrupador(Path<?> path, CriteriaBuilder builder, FilterMeta filter,
-			List<String> pathAgregados) {
+		Stream<Predicate> predicates = filterValues.entrySet().stream()
+				.filter(v -> v.getValue() != null && v.getValue().length() > 0).map(entry -> {
+					Predicate tmp = buildPredicate(root, builder, entry.getKey(), entry.getValue());
+					return tmp;
+				});
 
-		Predicate ret = null;
+		Optional<Predicate> predicate;
 
-		for (var child : filter.getChildrens()) {
-			Predicate tmpPredicate = buildPredicate(path, builder, child, pathAgregados);
-			if (tmpPredicate != null) {
-
-				if (ret == null) {
-					ret = tmpPredicate;
-				} else {
-					switch (filter.getOperator().toUpperCase()) {
-						case "AND":
-							ret = builder.and(ret, tmpPredicate);
-							break;
-						case "OR":
-							ret = builder.or(ret, tmpPredicate);
-							break;
-						default:
-							throw new IllegalArgumentException("Operador incorrecto");
-					}
-				}
-			}
-		}
-
-		return ret;
-	}
-
-	private static <T> Predicate buildPredicate(Path<?> path, CriteriaBuilder builder, FilterMeta filter,
-			List<String> pathAgregados) {
-
-		Predicate ret = null;
-
-		if (filter.getChildrens() != null && !filter.getChildrens().isEmpty()) {
-			ret = buildPredicateAgrupador(path, builder, filter, pathAgregados);
+		if (concatUsingAnd) {
+			predicate = predicates.collect(Collectors.reducing((a, b) -> builder.and(a, b)));
 		} else {
-			// valor directo
+			predicate = predicates.collect(Collectors.reducing((a, b) -> builder.or(a, b)));
+		}
 
-			if (filter.getFieldName() != null && !filter.getFieldName().isEmpty()) {
-				while (path.getParentPath() != null) {
-					path = path.getParentPath();
-				}
+		return predicate.orElseGet(() -> alwaysTrue(builder));
+	}
 
-				String[] splitKey = filter.getFieldName().split("\\.");
+	public static <T> Predicate buildPredicate(Root<T> root, CriteriaBuilder builder, String originalKey,
+			String value) {
+		// lo meto dentro de un arreglo para que quede final y se pueda usar dentro de
+		// las expresiones lambda
+		Path<?> path[] = new Path[] { root };
 
-				if (splitKey.length == 1) {
-					path = path.get(splitKey[0]);
-				} else {
-					String curPath = "";
+		String[] splitKey = originalKey.split("\\.");
 
-					Class<?> curClass = path.getJavaType();
-
-					for (int i = 0; i < splitKey.length; i++) {
-						if (!curPath.isEmpty()) {
-							curPath += ".";
-						}
-						curPath += splitKey[i];
-
-						Method m = getPathMethod(curClass, splitKey[i]);
-
-						if (!pathAgregados.contains(curPath)) {
-
-							if (m.getReturnType().getAnnotation(Entity.class) != null) {
-								// Logger.getLogger(QueryHelper.class.getName()).log(Level.INFO,
-								// 		"Agregando join " + curPath);
-								pathAgregados.add(curPath);
-
-								if (Root.class.isAssignableFrom(path.getClass())) {
-									path = ((Root<?>) path).join(splitKey[i], JoinType.LEFT);
-								} else {
-									path = ((Join<?, ?>) path).join(splitKey[i], JoinType.LEFT);
-								}
-							} else {
-								// Logger.getLogger(QueryHelper.class.getName()).log(Level.INFO,
-								// 		"Siguiendo path atributo a " + curPath);
-								path = path.get(splitKey[i]);
-							}
-
-						} else {
-							if (Root.class.isAssignableFrom(path.getClass())) {
-								// Logger.getLogger(QueryHelper.class.getName()).log(Level.INFO,
-								// 		"Ver si sigo path join a " + curPath + " " + path.getClass());
-								for (var join : ((Root<?>) path).getJoins()) {
-									if (join.getAttribute().getName().equals(splitKey[i])) {
-										// Logger.getLogger(QueryHelper.class.getName()).log(Level.INFO,
-										// 		"Siguiendo path join a " + curPath + " " + path.getClass());
-										path = join;
-										break;
-									}
-								}
-
-							} else {
-								Logger.getLogger(QueryHelper.class.getName()).log(Level.WARNING,
-										"GUARDA QUE NO ES ROOT!! Siguiendo path join a " + curPath + " "
-												+ path.getClass());
-								path = path.get(splitKey[i]);
-
-							}
-						}
-
-						curClass = m.getReturnType();
-					}
-				}
-
-				ret = buildPredicate(path, builder, filter.getValue());
-
+		for (int i = 0; i < splitKey.length; i++) {
+			if (i == 0 && splitKey.length > 1) {
+				path[0] = root.join(splitKey[i], JoinType.LEFT);
+			} else {
+				path[0] = path[0].get(splitKey[i]);
 			}
 		}
 
-		if (ret != null && filter.getOperator() != null && filter.getOperator().equalsIgnoreCase("NOT")) {
-			ret = ret.not();
-		}
-
-		return ret;
-	}
-
-	private static Method getPathMethod(Class<?> curClass, String fieldName) {
-		var methodName = "get" + StringUtils.capitalize(fieldName);
-
-		Method m = null;
-
-		try {
-			m = curClass.getMethod(methodName);
-
-		} catch (NoSuchMethodException | SecurityException e) {
-			methodName = "is" + StringUtils.capitalize(fieldName);
-
-			try {
-				m = curClass.getMethod(methodName);
-			} catch (NoSuchMethodException | SecurityException ex) {
-				// No hace nada, o no es un método o no puede acceder
-				Logger.getLogger(QueryHelper.class.getName()).log(Level.INFO,
-						"Error al acceder al método " + StringUtils.capitalize(fieldName)
-								+ " de la clase " + curClass);
-				throw new RuntimeException("Error en los campos de filtro", e);
-			}
-		}
-		return m;
-	}
-
-	public static <T> Predicate buildPredicate(Path<?> path, CriteriaBuilder builder, String value) {
-
-		Predicate ret = buildIntegerPredicate(builder, path, value)
-				.orElseGet(() -> buildDecimalPredicate(builder, path, value)
-						.orElseGet(() -> buildBooleanPredicate(builder, path, value)
-								.orElseGet(() -> buildDatePredicate(builder, path, value)
-										.orElseGet(() -> buildDefaultPredicate(builder, path, value)))));
+		Predicate ret = buildIntegerPredicate(builder, path[0], value)
+				.orElseGet(() -> buildDecimalPredicate(builder, path[0], value)
+						.orElseGet(() -> buildBooleanPredicate(builder, path[0], value)
+								.orElseGet(() -> buildDatePredicate(builder, path[0], value)
+										.orElseGet(() -> buildDefaultPredicate(builder, path[0], value)))));
 		return ret;
 	}
 
