@@ -98,9 +98,12 @@ public class QueryHelper {
 
 				if (splitKey.length == 1) {
 					path = path.get(splitKey[0]);
+					// path.alias(splitKey[0].replace(".", "_"));
+					// Logger.getLogger(QueryHelper.class.getName()).log(Level.INFO, "Seteando path de alias " + path.getAlias());
 				} else {
 					String curPath = "";
 
+					// Esto no anda con las colecciones
 					Class<?> curClass = path.getJavaType();
 
 					for (int i = 0; i < splitKey.length; i++) {
@@ -114,8 +117,6 @@ public class QueryHelper {
 						if (!pathAgregados.contains(curPath)) {
 
 							if (m.getReturnType().getAnnotation(Entity.class) != null) {
-								// Logger.getLogger(QueryHelper.class.getName()).log(Level.INFO,
-								// 		"Agregando join " + curPath);
 								pathAgregados.add(curPath);
 
 								if (Root.class.isAssignableFrom(path.getClass())) {
@@ -124,34 +125,30 @@ public class QueryHelper {
 									path = ((Join<?, ?>) path).join(splitKey[i], JoinType.LEFT);
 								}
 							} else {
-								// Logger.getLogger(QueryHelper.class.getName()).log(Level.INFO,
-								// 		"Siguiendo path atributo a " + curPath);
 								path = path.get(splitKey[i]);
 							}
-
+							
 						} else {
 							if (Root.class.isAssignableFrom(path.getClass())) {
-								// Logger.getLogger(QueryHelper.class.getName()).log(Level.INFO,
-								// 		"Ver si sigo path join a " + curPath + " " + path.getClass());
 								for (var join : ((Root<?>) path).getJoins()) {
 									if (join.getAttribute().getName().equals(splitKey[i])) {
-										// Logger.getLogger(QueryHelper.class.getName()).log(Level.INFO,
-										// 		"Siguiendo path join a " + curPath + " " + path.getClass());
 										path = join;
 										break;
 									}
 								}
-
+								
 							} else {
 								Logger.getLogger(QueryHelper.class.getName()).log(Level.WARNING,
-										"GUARDA QUE NO ES ROOT!! Siguiendo path join a " + curPath + " "
-												+ path.getClass());
+								"GUARDA QUE NO ES ROOT!! Siguiendo path join a " + curPath + " "
+								+ path.getJavaType());
 								path = path.get(splitKey[i]);
-
+								
 							}
 						}
-
+						
 						curClass = m.getReturnType();
+						// path.alias(curPath.replace(".", "_"));
+						// Logger.getLogger(QueryHelper.class.getName()).log(Level.INFO, "Seteando path de alias " + path.getAlias());
 					}
 				}
 
@@ -193,11 +190,12 @@ public class QueryHelper {
 
 	public static <T> Predicate buildPredicate(Path<?> path, CriteriaBuilder builder, String value) {
 
-		Predicate ret = buildIntegerPredicate(builder, path, value)
-				.orElseGet(() -> buildDecimalPredicate(builder, path, value)
-						.orElseGet(() -> buildBooleanPredicate(builder, path, value)
-								.orElseGet(() -> buildDatePredicate(builder, path, value)
-										.orElseGet(() -> buildDefaultPredicate(builder, path, value)))));
+		Predicate ret = buildCollectionPredicate(builder, path, value)
+				.orElseGet(() -> buildIntegerPredicate(builder, path, value)
+						.orElseGet(() -> buildDecimalPredicate(builder, path, value)
+								.orElseGet(() -> buildBooleanPredicate(builder, path, value)
+										.orElseGet(() -> buildDatePredicate(builder, path, value)
+												.orElseGet(() -> buildDefaultPredicate(builder, path, value))))));
 		return ret;
 	}
 
@@ -263,31 +261,41 @@ public class QueryHelper {
 	}
 
 	/**
-	 * NO TERMINADO DEBERÍA BUSCAR EL VALOR DENTRO DE UNA LISTA
+	 * No funciona, es complicado por el genérico definido en la colección
+	 * @param builder
+	 * @param path
+	 * @param value
+	 * @return
+	 */
+	public static Optional<Predicate> buildCollectionPredicate(CriteriaBuilder builder, Path<?> path, String value) {
+
+		if (Collection.class.isAssignableFrom(path.getJavaType())) {
+
+			var strPath = path.getAlias();
+
+			// Path<?> tmpPath = path.getParentPath();
+
+			// while(tmpPath != null) {
+			// 	strPath = tmpPath.getJavaType().getSimpleName() + "." + strPath;
+			// 	tmpPath = tmpPath.getParentPath();
+			// }
+
+			Logger.getLogger(QueryHelper.class.getName()).log(Level.INFO, "Creando predicate para collection " + value + " in " + strPath);
+			return Optional.of(builder.isMember(builder.literal(value), (Expression<Collection<String>>) path));
+			
+		}
+
+		return Optional.empty();
+	}
+
+	/**
 	 * 
 	 * @param builder
 	 * @param path
 	 * @param key
 	 * @param value
 	 * @return
-	 *         public Optional<Predicate> buildCollectionPredicate(CriteriaBuilder
-	 *         builder, Path<?> path, String value) {
-	 * 
-	 *         Predicate ret = null;
-	 * 
-	 *         if (Collection.class.isAssignableFrom(path.getJavaType())) {
-	 *         Class<?> clazz = ((Class<?>) ((ParameterizedType) path.getJavaType()
-	 *         .getGenericSuperclass()).getActualTypeArguments()[0]);
-	 * 
-	 *         CriteriaQuery<?> query = builder.createQuery(clazz);
-	 *         Root<?> collectionRoot = query.from(clazz);
-	 * 
-	 *         }
-	 * 
-	 *         return Optional.empty();
-	 *         }
 	 */
-
 	public static Optional<Predicate> buildDatePredicate(CriteriaBuilder builder, Path<?> path,
 			String value) {
 		if (Objects.equals(path.getJavaType(), Date.class)) {

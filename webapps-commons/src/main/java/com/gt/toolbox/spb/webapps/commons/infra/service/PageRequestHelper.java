@@ -41,29 +41,20 @@ public class PageRequestHelper {
         }
         Sort sorts = null;
 
-        if (pageRequest.getSortField() != null && pageRequest.getSortDirection() != null) {
-            Sort.Direction direction = pageRequest.getSortDirection() == SortDirection.ASC ? Sort.Direction.ASC
-                    : Sort.Direction.DESC;
-            sorts = Sort.by(direction, pageRequest.getSortField());
-        } else if (pageRequest.getMultiSortMeta() == null || pageRequest.getMultiSortMeta().length == 0) {
-            if (pageRequest.getSortField() != null && !pageRequest.getSortField().isEmpty()) {
-                if (Optional.ofNullable(pageRequest.getSortDirection())
-                        .orElse(SortDirection.NONE) == SortDirection.ASC) {
-                    sorts = Sort.by(pageRequest.getSortField());
-                } else if (Optional.ofNullable(pageRequest.getSortDirection())
-                        .orElse(SortDirection.NONE) == SortDirection.DESC) {
-                    sorts = Sort.by(pageRequest.getSortField()).descending();
-                }
+        if (pageRequest.getSortField() != null) {
+            sorts = Sort.by(pageRequest.getSortField());
+            if (pageRequest.getSortDirection() == SortDirection.DESC) {
+                sorts = sorts.descending();
             }
-        } else {
+        }
+
+        if (pageRequest.getMultiSortMeta() != null) {
+
             Sort tmpSort = null;
             for (SortMeta sm : pageRequest.getMultiSortMeta()) {
-                if (sm.getDirection() == SortDirection.ASC) {
-                    sorts = Sort.by(sm.getField());
-                } else if (sm.getDirection() == SortDirection.DESC) {
-                    sorts = Sort.by(sm.getField()).descending();
-                } else {
-                    continue;
+                tmpSort = Sort.by(sm.getField());
+                if (sm.getDirection() == SortDirection.DESC) {
+                    tmpSort = tmpSort.descending();
                 }
 
                 if (sorts == null) {
@@ -100,9 +91,16 @@ public class PageRequestHelper {
     }
 
     public static <T> Specification<T> toSpecification(PageRequest pageRequest) {
+        if(pageRequest == null) {
+            pageRequest = new PageRequest();
+            pageRequest.setFirst(0);
+            pageRequest.setRows(Integer.MAX_VALUE);
+        }
+
+        final PageRequest tmp = pageRequest;
         return (Root<T> root, CriteriaQuery<?> query, CriteriaBuilder builder) -> {
             // query.distinct(true);
-            return buildPredicate(pageRequest, root, builder);
+            return buildPredicate(tmp, root, builder);
         };
     }
 
