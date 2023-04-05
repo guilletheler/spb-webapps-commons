@@ -15,9 +15,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
-import javax.faces.application.FacesMessage;
-
-import org.omnifaces.util.Messages;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContext;
@@ -81,25 +78,6 @@ public class Utils implements Serializable {
 	public static final NumberFormat CURRENCY_FORMAT = NumberFormat.getCurrencyInstance(new Locale("es", "AR"));
 
 	public static final Date DEFAULT_DATE = new Date(0L);
-
-	public static <T> void addIfNotContains(List<T> list, T item) {
-		if (!list.contains(item)) {
-			list.add(0, item);
-		}
-	}
-
-	public static void addDetailMessage(String message) {
-		addDetailMessage(message, null);
-	}
-
-	public static void addDetailMessage(String message, FacesMessage.Severity severity) {
-
-		FacesMessage facesMessage = Messages.create("").detail(message).get();
-		if (severity != null && severity != FacesMessage.SEVERITY_INFO) {
-			facesMessage.setSeverity(severity);
-		}
-		Messages.addFlash(null, facesMessage);
-	}
 
 	public static boolean isUserInRole(String role) {
 		// get security context from thread local

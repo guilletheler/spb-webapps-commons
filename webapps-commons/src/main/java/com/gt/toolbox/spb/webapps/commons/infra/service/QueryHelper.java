@@ -96,61 +96,61 @@ public class QueryHelper {
 
 				String[] splitKey = filter.getFieldName().split("\\.");
 
-				if (splitKey.length == 1) {
-					path = path.get(splitKey[0]);
-					// path.alias(splitKey[0].replace(".", "_"));
-					// Logger.getLogger(QueryHelper.class.getName()).log(Level.INFO, "Seteando path de alias " + path.getAlias());
-				} else {
-					String curPath = "";
+				// if (splitKey.length == 1) {
+				// path = path.get(splitKey[0]);
+				// path.alias(splitKey[0].replace(".", "_"));
+				// Logger.getLogger(QueryHelper.class.getName()).log(Level.INFO, "Seteando path
+				// de alias " + path.getAlias());
+				// } else {
+				String curPath = "";
 
-					// Esto no anda con las colecciones
-					Class<?> curClass = path.getJavaType();
+				// Esto no anda con las colecciones
+				Class<?> curClass = path.getJavaType();
 
-					for (int i = 0; i < splitKey.length; i++) {
-						if (!curPath.isEmpty()) {
-							curPath += ".";
-						}
-						curPath += splitKey[i];
-
-						Method m = getPathMethod(curClass, splitKey[i]);
-
-						if (!pathAgregados.contains(curPath)) {
-
-							if (m.getReturnType().getAnnotation(Entity.class) != null) {
-								pathAgregados.add(curPath);
-
-								if (Root.class.isAssignableFrom(path.getClass())) {
-									path = ((Root<?>) path).join(splitKey[i], JoinType.LEFT);
-								} else {
-									path = ((Join<?, ?>) path).join(splitKey[i], JoinType.LEFT);
-								}
-							} else {
-								path = path.get(splitKey[i]);
-							}
-							
-						} else {
-							if (Root.class.isAssignableFrom(path.getClass())) {
-								for (var join : ((Root<?>) path).getJoins()) {
-									if (join.getAttribute().getName().equals(splitKey[i])) {
-										path = join;
-										break;
-									}
-								}
-								
-							} else {
-								Logger.getLogger(QueryHelper.class.getName()).log(Level.WARNING,
-								"GUARDA QUE NO ES ROOT!! Siguiendo path join a " + curPath + " "
-								+ path.getJavaType());
-								path = path.get(splitKey[i]);
-								
-							}
-						}
-						
-						curClass = m.getReturnType();
-						// path.alias(curPath.replace(".", "_"));
-						// Logger.getLogger(QueryHelper.class.getName()).log(Level.INFO, "Seteando path de alias " + path.getAlias());
+				for (int i = 0; i < splitKey.length; i++) {
+					if (!curPath.isEmpty()) {
+						curPath += ".";
 					}
+					curPath += splitKey[i];
+
+					Method m = getPathMethod(curClass, splitKey[i]);
+
+					if (!pathAgregados.contains(curPath)) {
+
+						if (m.getReturnType().getAnnotation(Entity.class) != null) {
+
+							path = agregarJoin(path, pathAgregados, curPath, splitKey[i]);
+						} else {
+							// Logger.getLogger(QueryHelper.class.getName()).log(Level.INFO,
+							// "siguiendo path " + splitKey[i] + " " + m.getName() + " " +
+							// m.getReturnType());
+							path = path.get(splitKey[i]);
+						}
+
+					} else {
+						if (Root.class.isAssignableFrom(path.getClass())) {
+							for (var join : ((Root<?>) path).getJoins()) {
+								if (join.getAttribute().getName().equals(splitKey[i])) {
+									path = join;
+									break;
+								}
+							}
+
+						} else {
+							Logger.getLogger(QueryHelper.class.getName()).log(Level.WARNING,
+									"GUARDA QUE NO ES ROOT!! Siguiendo path join a " + curPath + " "
+											+ path.getJavaType());
+							path = path.get(splitKey[i]);
+
+						}
+					}
+
+					curClass = m.getReturnType();
+					path.alias(curPath.replace(".", "_"));
+					// Logger.getLogger(QueryHelper.class.getName()).log(Level.INFO, "Seteando path
+					// de alias " + path.getAlias());
 				}
+				// }
 
 				ret = buildPredicate(path, builder, filter.getValue());
 
@@ -162,6 +162,19 @@ public class QueryHelper {
 		}
 
 		return ret;
+	}
+
+	private static Path<?> agregarJoin(Path<?> path, List<String> pathAgregados, String curPath,
+			String curKey) {
+
+		pathAgregados.add(curPath);
+
+		if (Root.class.isAssignableFrom(path.getClass())) {
+			path = ((Root<?>) path).join(curKey, JoinType.LEFT);
+		} else {
+			path = ((Join<?, ?>) path).join(curKey, JoinType.LEFT);
+		}
+		return path;
 	}
 
 	private static Method getPathMethod(Class<?> curClass, String fieldName) {
@@ -196,6 +209,7 @@ public class QueryHelper {
 								.orElseGet(() -> buildBooleanPredicate(builder, path, value)
 										.orElseGet(() -> buildDatePredicate(builder, path, value)
 												.orElseGet(() -> buildDefaultPredicate(builder, path, value))))));
+
 		return ret;
 	}
 
@@ -261,7 +275,8 @@ public class QueryHelper {
 	}
 
 	/**
-	 * No funciona, es complicado por el genérico definido en la colección
+	 * No funciona bien, trae resultados repetidos
+	 * 
 	 * @param builder
 	 * @param path
 	 * @param value
@@ -271,18 +286,28 @@ public class QueryHelper {
 
 		if (Collection.class.isAssignableFrom(path.getJavaType())) {
 
-			var strPath = path.getAlias();
+			var collectionPropertyName = path.getAlias();
 
-			// Path<?> tmpPath = path.getParentPath();
+			Path<?> parentPath = path.getParentPath();
+
+			if (Root.class.isAssignableFrom(parentPath.getClass())) {
+				path = ((Root<?>) parentPath).join(collectionPropertyName, JoinType.LEFT);
+			} else {
+				path = ((Join<?, ?>) parentPath).join(collectionPropertyName, JoinType.LEFT);
+			}
 
 			// while(tmpPath != null) {
-			// 	strPath = tmpPath.getJavaType().getSimpleName() + "." + strPath;
-			// 	tmpPath = tmpPath.getParentPath();
+			// strPath = tmpPath.getJavaType().getSimpleName() + "." + strPath;
+			// tmpPath = tmpPath.getParentPath();
 			// }
 
-			Logger.getLogger(QueryHelper.class.getName()).log(Level.INFO, "Creando predicate para collection " + value + " in " + strPath);
-			return Optional.of(builder.isMember(builder.literal(value), (Expression<Collection<String>>) path));
-			
+			Logger.getLogger(QueryHelper.class.getName()).log(Level.INFO,
+					"Creando predicate para collection " + value + " in " + collectionPropertyName);
+
+			var predicate = builder.like(path.as(String.class), "%" + value + "%");
+
+			return Optional.of(predicate);
+
 		}
 
 		return Optional.empty();
@@ -303,14 +328,14 @@ public class QueryHelper {
 			Expression<Date> dateExpression = path.as(Date.class);
 
 			if (value.trim().startsWith("-") || value.trim().startsWith(">")) {
-				Date fechaIni = QueryHelper.parseDate(value.trim().substring(1).trim());
-				return Optional.ofNullable(builder.greaterThanOrEqualTo(dateExpression, fechaIni));
+				Date fechaFin = QueryHelper.parseDate(value.trim().substring(1).trim());
+				return Optional.ofNullable(builder.lessThanOrEqualTo(dateExpression, fechaFin));
 			} else if (value.trim().startsWith("<")) {
 				Date fechaFin = QueryHelper.parseDate(value.trim().substring(1).trim());
 				return Optional.ofNullable(builder.lessThanOrEqualTo(dateExpression, fechaFin));
 			} else if (value.trim().endsWith("-")) {
-				Date fechaFin = QueryHelper.parseDate(value.trim().substring(0, value.trim().length() - 1).trim());
-				return Optional.ofNullable(builder.lessThanOrEqualTo(dateExpression, fechaFin));
+				Date fechaIni = QueryHelper.parseDate(value.trim().substring(0, value.trim().length() - 1).trim());
+				return Optional.ofNullable(builder.greaterThanOrEqualTo(dateExpression, fechaIni));
 			} else if (value.trim().contains("-")) {
 				// Supongo un between
 
@@ -335,8 +360,7 @@ public class QueryHelper {
 
 			} else {
 
-				return Optional.ofNullable(builder.like(builder.function("TO_CHAR", String.class, dateExpression,
-						builder.literal("dd/MM/yyyy HH24:MI:ss")), "%" + value + "%"));
+				return Optional.ofNullable(builder.equal(dateExpression, QueryHelper.parseDate(value)));
 
 			}
 		}

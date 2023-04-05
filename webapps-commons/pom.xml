@@ -17,9 +17,8 @@
 		<spring.data.jpa.version>2.6.0</spring.data.jpa.version>
 		<spring.security.core.version>5.6.1</spring.security.core.version>
 		<javax.persistence.api.version>2.2</javax.persistence.api.version>
-		<omnifaces.version>3.12</omnifaces.version>
 		<lombok.version>1.18.24</lombok.version>
-		<jackson.version>2.13.4</jackson.version>
+		<jackson.version>2.15.0-rc1</jackson.version>
 	</properties>
 
 	<dependencies>
@@ -27,13 +26,6 @@
 			<groupId>org.projectlombok</groupId>
 			<artifactId>lombok</artifactId>
 			<version>${lombok.version}</version>
-			<scope>provided</scope>
-		</dependency>
-		<!-- https://mvnrepository.com/artifact/javax.faces/javax.faces-api -->
-		<dependency>
-			<groupId>javax.faces</groupId>
-			<artifactId>javax.faces-api</artifactId>
-			<version>2.3</version>
 			<scope>provided</scope>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/org.apache.commons/commons-lang3 -->
@@ -71,13 +63,6 @@
 			<version>${javax.persistence.api.version}</version>
 			<scope>provided</scope>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/org.omnifaces/omnifaces -->
-		<dependency>
-			<groupId>org.omnifaces</groupId>
-			<artifactId>omnifaces</artifactId>
-			<version>${omnifaces.version}</version>
-			<scope>provided</scope>
-		</dependency>
 
 		<!-- https://mvnrepository.com/artifact/com.fasterxml.jackson.core/jackson-annotations -->
 		<dependency>
@@ -89,7 +74,7 @@
 		<dependency>
 			<groupId>com.fasterxml.jackson.core</groupId>
 			<artifactId>jackson-databind</artifactId>
-			<version>2.13.3</version>
+			<version>${jackson.version}</version>
 			<scope>provided</scope>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/javassist/javassist -->
