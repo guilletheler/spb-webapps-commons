@@ -1,20 +1,20 @@
 package com.gt.toolbox.spb.webapps.commons.infra.service;
 
-import java.util.Optional;
-
-import jakarta.persistence.criteria.CriteriaBuilder;
-import jakarta.persistence.criteria.CriteriaQuery;
-import jakarta.persistence.criteria.Predicate;
-import jakarta.persistence.criteria.Root;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 
 import com.gt.toolbox.spb.webapps.payload.FilterMeta;
 import com.gt.toolbox.spb.webapps.payload.PageRequest;
 import com.gt.toolbox.spb.webapps.payload.SortMeta;
 import com.gt.toolbox.spb.webapps.payload.SortMeta.SortDirection;
 
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
-import org.springframework.data.jpa.domain.Specification;
+import jakarta.persistence.criteria.CriteriaBuilder;
+import jakarta.persistence.criteria.CriteriaQuery;
+import jakarta.persistence.criteria.Predicate;
+import jakarta.persistence.criteria.Root;
+
+
 
 public class PageRequestHelper {
 
@@ -41,29 +41,20 @@ public class PageRequestHelper {
         }
         Sort sorts = null;
 
-        if (pageRequest.getSortField() != null && pageRequest.getSortDirection() != null) {
-            Sort.Direction direction = pageRequest.getSortDirection() == SortDirection.ASC ? Sort.Direction.ASC
-                    : Sort.Direction.DESC;
-            sorts = Sort.by(direction, pageRequest.getSortField());
-        } else if (pageRequest.getMultiSortMeta() == null || pageRequest.getMultiSortMeta().length == 0) {
-            if (pageRequest.getSortField() != null && !pageRequest.getSortField().isEmpty()) {
-                if (Optional.ofNullable(pageRequest.getSortDirection())
-                        .orElse(SortDirection.NONE) == SortDirection.ASC) {
-                    sorts = Sort.by(pageRequest.getSortField());
-                } else if (Optional.ofNullable(pageRequest.getSortDirection())
-                        .orElse(SortDirection.NONE) == SortDirection.DESC) {
-                    sorts = Sort.by(pageRequest.getSortField()).descending();
-                }
+        if (pageRequest.getSortField() != null) {
+            sorts = Sort.by(pageRequest.getSortField());
+            if (pageRequest.getSortDirection() == SortDirection.DESC) {
+                sorts = sorts.descending();
             }
-        } else {
+        }
+
+        if (pageRequest.getMultiSortMeta() != null) {
+
             Sort tmpSort = null;
             for (SortMeta sm : pageRequest.getMultiSortMeta()) {
-                if (sm.getDirection() == SortDirection.ASC) {
-                    sorts = Sort.by(sm.getField());
-                } else if (sm.getDirection() == SortDirection.DESC) {
-                    sorts = Sort.by(sm.getField()).descending();
-                } else {
-                    continue;
+                tmpSort = Sort.by(sm.getField());
+                if (sm.getDirection() == SortDirection.DESC) {
+                    tmpSort = tmpSort.descending();
                 }
 
                 if (sorts == null) {
@@ -100,9 +91,16 @@ public class PageRequestHelper {
     }
 
     public static <T> Specification<T> toSpecification(PageRequest pageRequest) {
+        if(pageRequest == null) {
+            pageRequest = new PageRequest();
+            pageRequest.setFirst(0);
+            pageRequest.setRows(Integer.MAX_VALUE);
+        }
+
+        final PageRequest tmp = pageRequest;
         return (Root<T> root, CriteriaQuery<?> query, CriteriaBuilder builder) -> {
             // query.distinct(true);
-            return buildPredicate(pageRequest, root, builder);
+            return buildPredicate(tmp, root, builder);
         };
     }
 
@@ -118,70 +116,8 @@ public class PageRequestHelper {
 
     private static <T> Predicate buildPredicate(Root<T> root, CriteriaBuilder builder, FilterMeta filter) {
 
-        Predicate ret = null;
-
-        if (filter.getFieldName() != null && !filter.getFieldName().isEmpty() && filter.getValue() != null
-                && !filter.getValue().isEmpty()) {
-
-            // nodo tipo filtro
-
-            /**
-             * Uso QueryHelper porque crea la consulta según tipo de dato
-             */
-            ret = QueryHelper.buildPredicate(root, builder, filter.getFieldName(), filter.getValue());
-
-            if (filter.getOperator() != null && filter.getOperator().equalsIgnoreCase("not")) {
-                ret = builder.not(ret);
-            }
-
-        } else if (filter.getOperator() != null && !filter.getOperator().isEmpty()
-                && filter.getChildrens() != null && filter.getChildrens().size() > 0) {
-
-            // nodo tipo operador
-
-            switch (filter.getOperator().toLowerCase()) {
-                case "and":
-                    Predicate tmpAnd;
-                    for (FilterMeta child : filter.getChildrens()) {
-                        tmpAnd = buildPredicate(root, builder, child);
-                        if (ret == null) {
-                            ret = tmpAnd;
-                        } else {
-                            ret = builder.and(ret, tmpAnd);
-                        }
-                    }
-                    break;
-                case "or":
-                    Predicate tmpOr;
-                    for (FilterMeta child : filter.getChildrens()) {
-                        tmpOr = buildPredicate(root, builder, child);
-                        if (ret == null) {
-                            ret = tmpOr;
-                        } else {
-                            ret = builder.or(ret, tmpOr);
-                        }
-                    }
-                    break;
-                case "not":
-                    if (filter.getChildrens().size() != 1) {
-                        throw new IllegalArgumentException("El operador NOT solo acepta un hijo");
-                    }
-                    ret = builder.not(buildPredicate(root, builder, filter.getChildrens().get(0)));
-                    break;
-                default:
-                    break;
-
-            }
-
-        } else {
-            throw new IllegalArgumentException(
-                    "se esperaba un filtro con nombre de campo y valor o con operador y lista de filtros");
-        }
-
-        // Logger.getLogger(PageRequestHelper.class.getName()).info("procesando : " +
-        // filter);
+        Predicate ret = QueryHelper.buildPredicate(root, builder, filter);
 
         return ret;
-
     }
 }

@@ -1,4 +1,4 @@
-package com.gt.toolbox.spb.webapps.commons.infra.service;
+package com.gt.toolbox.spb.jpa.service;
 
 import javax.persistence.criteria.CriteriaBuilder;
 import javax.persistence.criteria.CriteriaQuery;
@@ -9,10 +9,11 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 
-import com.gt.toolbox.spb.webapps.payload.FilterMeta;
-import com.gt.toolbox.spb.webapps.payload.PageRequest;
-import com.gt.toolbox.spb.webapps.payload.SortMeta;
-import com.gt.toolbox.spb.webapps.payload.SortMeta.SortDirection;
+import com.gt.toolbox.spb.jpa.service.support.SortMeta.SortDirection;
+import com.gt.toolbox.spb.jpa.service.support.PageRequest;
+import com.gt.toolbox.spb.jpa.service.support.SortMeta;
+import com.gt.toolbox.spb.jpa.service.support.FilterMeta;
+
 
 public class PageRequestHelper {
 

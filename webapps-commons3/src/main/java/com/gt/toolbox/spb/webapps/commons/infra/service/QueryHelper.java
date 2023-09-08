@@ -1,91 +1,216 @@
 package com.gt.toolbox.spb.webapps.commons.infra.service;
 
+import java.lang.reflect.Method;
 //import java.lang.reflect.ParameterizedType;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
-import java.util.Map;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.data.jpa.domain.Specification;
+
+import com.gt.toolbox.spb.webapps.commons.infra.utils.Utils;
+import com.gt.toolbox.spb.webapps.payload.FilterMeta;
+
+import jakarta.persistence.Entity;
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.CriteriaQuery;
 import jakarta.persistence.criteria.Expression;
+import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.JoinType;
 import jakarta.persistence.criteria.Path;
 import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Root;
 
-import org.springframework.data.jpa.domain.Specification;
-
-import com.gt.toolbox.spb.webapps.commons.infra.utils.Utils;
 
 public class QueryHelper {
 
-	public static <T> Specification<T> getFilterSpecification(Map<String, String> filterValues) {
-		return getFilterSpecification(filterValues, true);
-	}
-
-	public static <T> Specification<T> getFilterSpecification(Map<String, String> filterValues,
-			boolean concatUsingAnd) {
+	public static <T> Specification<T> getFilterSpecification(FilterMeta filter) {
 
 		return (Root<T> root, CriteriaQuery<?> query, CriteriaBuilder builder) -> {
 			// query.distinct(true);
-			return buildPredicate(filterValues, root, builder, concatUsingAnd);
+
+			return buildPredicate(root, builder, filter);
 		};
 	}
 
-	public static <T> Predicate buildPredicate(Map<String, String> filterValues, Root<T> root,
-			CriteriaBuilder builder) {
-		return buildPredicate(filterValues, root, builder, true);
+	public static <T> Predicate buildPredicate(Root<T> root, CriteriaBuilder builder, FilterMeta filter) {
+		return buildPredicate(root, builder, filter, new ArrayList<>());
 	}
 
-	public static <T> Predicate buildPredicate(Map<String, String> filterValues, Root<T> root,
-			CriteriaBuilder builder, boolean concatUsingAnd) {
-
-		Stream<Predicate> predicates = filterValues.entrySet().stream()
-				.filter(v -> v.getValue() != null && v.getValue().length() > 0).map(entry -> {
-					Predicate tmp = buildPredicate(root, builder, entry.getKey(), entry.getValue());
-					return tmp;
-				});
-
-		Optional<Predicate> predicate;
-
-		if (concatUsingAnd) {
-			predicate = predicates.collect(Collectors.reducing((a, b) -> builder.and(a, b)));
-		} else {
-			predicate = predicates.collect(Collectors.reducing((a, b) -> builder.or(a, b)));
-		}
-
-		return predicate.orElseGet(() -> alwaysTrue(builder));
+	public static <T> Predicate buildPredicate(Path<?> path, CriteriaBuilder builder, FilterMeta filter) {
+		return buildPredicate(path, builder, filter, new ArrayList<>());
 	}
 
-	public static <T> Predicate buildPredicate(Root<T> root, CriteriaBuilder builder, String originalKey,
-			String value) {
-		// lo meto dentro de un arreglo para que quede final y se pueda usar dentro de
-		// las expresiones lambda
-		Path<?> path[] = new Path[] { root };
+	private static <T> Predicate buildPredicateAgrupador(Path<?> path, CriteriaBuilder builder, FilterMeta filter,
+			List<String> pathAgregados) {
 
-		String[] splitKey = originalKey.split("\\.");
+		Predicate ret = null;
 
-		for (int i = 0; i < splitKey.length; i++) {
-			if (i == 0 && splitKey.length > 1) {
-				path[0] = root.join(splitKey[i], JoinType.LEFT);
-			} else {
-				path[0] = path[0].get(splitKey[i]);
+		for (var child : filter.getChildrens()) {
+			Predicate tmpPredicate = buildPredicate(path, builder, child, pathAgregados);
+			if (tmpPredicate != null) {
+
+				if (ret == null) {
+					ret = tmpPredicate;
+				} else {
+					switch (filter.getOperator().toUpperCase()) {
+						case "AND":
+							ret = builder.and(ret, tmpPredicate);
+							break;
+						case "OR":
+							ret = builder.or(ret, tmpPredicate);
+							break;
+						default:
+							throw new IllegalArgumentException("Operador incorrecto");
+					}
+				}
 			}
 		}
 
-		Predicate ret = buildIntegerPredicate(builder, path[0], value)
-				.orElseGet(() -> buildDecimalPredicate(builder, path[0], value)
-						.orElseGet(() -> buildBooleanPredicate(builder, path[0], value)
-								.orElseGet(() -> buildDatePredicate(builder, path[0], value)
-										.orElseGet(() -> buildDefaultPredicate(builder, path[0], value)))));
+		return ret;
+	}
+
+	private static <T> Predicate buildPredicate(Path<?> path, CriteriaBuilder builder, FilterMeta filter,
+			List<String> pathAgregados) {
+
+		Predicate ret = null;
+
+		if (filter.getChildrens() != null && !filter.getChildrens().isEmpty()) {
+			ret = buildPredicateAgrupador(path, builder, filter, pathAgregados);
+		} else {
+			// valor directo
+
+			if (filter.getFieldName() != null && !filter.getFieldName().isEmpty()) {
+				while (path.getParentPath() != null) {
+					path = path.getParentPath();
+				}
+
+				String[] splitKey = filter.getFieldName().split("\\.");
+
+				// if (splitKey.length == 1) {
+				// path = path.get(splitKey[0]);
+				// path.alias(splitKey[0].replace(".", "_"));
+				// Logger.getLogger(QueryHelper.class.getName()).log(Level.INFO, "Seteando path
+				// de alias " + path.getAlias());
+				// } else {
+				String curPath = "";
+
+				// Esto no anda con las colecciones
+				Class<?> curClass = path.getJavaType();
+
+				for (int i = 0; i < splitKey.length; i++) {
+					if (!curPath.isEmpty()) {
+						curPath += ".";
+					}
+					curPath += splitKey[i];
+
+					Method m = getPathMethod(curClass, splitKey[i]);
+
+					if (!pathAgregados.contains(curPath)) {
+
+						if (m.getReturnType().getAnnotation(Entity.class) != null) {
+
+							path = agregarJoin(path, pathAgregados, curPath, splitKey[i]);
+						} else {
+							// Logger.getLogger(QueryHelper.class.getName()).log(Level.INFO,
+							// "siguiendo path " + splitKey[i] + " " + m.getName() + " " +
+							// m.getReturnType());
+							path = path.get(splitKey[i]);
+						}
+
+					} else {
+						if (Root.class.isAssignableFrom(path.getClass())) {
+							for (var join : ((Root<?>) path).getJoins()) {
+								if (join.getAttribute().getName().equals(splitKey[i])) {
+									path = join;
+									break;
+								}
+							}
+
+						} else {
+							Logger.getLogger(QueryHelper.class.getName()).log(Level.WARNING,
+									"GUARDA QUE NO ES ROOT!! Siguiendo path join a " + curPath + " "
+											+ path.getJavaType());
+							path = path.get(splitKey[i]);
+
+						}
+					}
+
+					curClass = m.getReturnType();
+					path.alias(curPath.replace(".", "_"));
+					// Logger.getLogger(QueryHelper.class.getName()).log(Level.INFO, "Seteando path
+					// de alias " + path.getAlias());
+				}
+				// }
+
+				ret = buildPredicate(path, builder, filter.getValue());
+
+			}
+		}
+
+		if (ret != null && filter.getOperator() != null && filter.getOperator().equalsIgnoreCase("NOT")) {
+			ret = ret.not();
+		}
+
+		return ret;
+	}
+
+	private static Path<?> agregarJoin(Path<?> path, List<String> pathAgregados, String curPath,
+			String curKey) {
+
+		pathAgregados.add(curPath);
+
+		if (Root.class.isAssignableFrom(path.getClass())) {
+			path = ((Root<?>) path).join(curKey, JoinType.LEFT);
+		} else {
+			path = ((Join<?, ?>) path).join(curKey, JoinType.LEFT);
+		}
+		return path;
+	}
+
+	private static Method getPathMethod(Class<?> curClass, String fieldName) {
+		var methodName = "get" + StringUtils.capitalize(fieldName);
+
+		Method m = null;
+
+		try {
+			m = curClass.getMethod(methodName);
+
+		} catch (NoSuchMethodException | SecurityException e) {
+			methodName = "is" + StringUtils.capitalize(fieldName);
+
+			try {
+				m = curClass.getMethod(methodName);
+			} catch (NoSuchMethodException | SecurityException ex) {
+				// No hace nada, o no es un método o no puede acceder
+				Logger.getLogger(QueryHelper.class.getName()).log(Level.INFO,
+						"Error al acceder al método " + StringUtils.capitalize(fieldName)
+								+ " de la clase " + curClass);
+				throw new RuntimeException("Error en los campos de filtro", e);
+			}
+		}
+		return m;
+	}
+
+	public static <T> Predicate buildPredicate(Path<?> path, CriteriaBuilder builder, String value) {
+
+		Predicate ret = buildCollectionPredicate(builder, path, value)
+				.orElseGet(() -> buildIntegerPredicate(builder, path, value)
+						.orElseGet(() -> buildDecimalPredicate(builder, path, value)
+								.orElseGet(() -> buildBooleanPredicate(builder, path, value)
+										.orElseGet(() -> buildDatePredicate(builder, path, value)
+												.orElseGet(() -> buildDefaultPredicate(builder, path, value))))));
+
 		return ret;
 	}
 
@@ -151,31 +276,52 @@ public class QueryHelper {
 	}
 
 	/**
-	 * NO TERMINADO DEBERÍA BUSCAR EL VALOR DENTRO DE UNA LISTA
+	 * No funciona bien, trae resultados repetidos
+	 * 
+	 * @param builder
+	 * @param path
+	 * @param value
+	 * @return
+	 */
+	public static Optional<Predicate> buildCollectionPredicate(CriteriaBuilder builder, Path<?> path, String value) {
+
+		if (Collection.class.isAssignableFrom(path.getJavaType())) {
+
+			var collectionPropertyName = path.getAlias();
+
+			Path<?> parentPath = path.getParentPath();
+
+			if (Root.class.isAssignableFrom(parentPath.getClass())) {
+				path = ((Root<?>) parentPath).join(collectionPropertyName, JoinType.LEFT);
+			} else {
+				path = ((Join<?, ?>) parentPath).join(collectionPropertyName, JoinType.LEFT);
+			}
+
+			// while(tmpPath != null) {
+			// strPath = tmpPath.getJavaType().getSimpleName() + "." + strPath;
+			// tmpPath = tmpPath.getParentPath();
+			// }
+
+			Logger.getLogger(QueryHelper.class.getName()).log(Level.INFO,
+					"Creando predicate para collection " + value + " in " + collectionPropertyName);
+
+			var predicate = builder.like(path.as(String.class), "%" + value + "%");
+
+			return Optional.of(predicate);
+
+		}
+
+		return Optional.empty();
+	}
+
+	/**
 	 * 
 	 * @param builder
 	 * @param path
 	 * @param key
 	 * @param value
 	 * @return
-	 *         public Optional<Predicate> buildCollectionPredicate(CriteriaBuilder
-	 *         builder, Path<?> path, String value) {
-	 * 
-	 *         Predicate ret = null;
-	 * 
-	 *         if (Collection.class.isAssignableFrom(path.getJavaType())) {
-	 *         Class<?> clazz = ((Class<?>) ((ParameterizedType) path.getJavaType()
-	 *         .getGenericSuperclass()).getActualTypeArguments()[0]);
-	 * 
-	 *         CriteriaQuery<?> query = builder.createQuery(clazz);
-	 *         Root<?> collectionRoot = query.from(clazz);
-	 * 
-	 *         }
-	 * 
-	 *         return Optional.empty();
-	 *         }
 	 */
-
 	public static Optional<Predicate> buildDatePredicate(CriteriaBuilder builder, Path<?> path,
 			String value) {
 		if (Objects.equals(path.getJavaType(), Date.class)) {
@@ -183,14 +329,14 @@ public class QueryHelper {
 			Expression<Date> dateExpression = path.as(Date.class);
 
 			if (value.trim().startsWith("-") || value.trim().startsWith(">")) {
-				Date fechaIni = QueryHelper.parseDate(value.trim().substring(1).trim());
-				return Optional.ofNullable(builder.greaterThanOrEqualTo(dateExpression, fechaIni));
+				Date fechaFin = QueryHelper.parseDate(value.trim().substring(1).trim());
+				return Optional.ofNullable(builder.lessThanOrEqualTo(dateExpression, fechaFin));
 			} else if (value.trim().startsWith("<")) {
 				Date fechaFin = QueryHelper.parseDate(value.trim().substring(1).trim());
 				return Optional.ofNullable(builder.lessThanOrEqualTo(dateExpression, fechaFin));
 			} else if (value.trim().endsWith("-")) {
-				Date fechaFin = QueryHelper.parseDate(value.trim().substring(0, value.trim().length() - 1).trim());
-				return Optional.ofNullable(builder.lessThanOrEqualTo(dateExpression, fechaFin));
+				Date fechaIni = QueryHelper.parseDate(value.trim().substring(0, value.trim().length() - 1).trim());
+				return Optional.ofNullable(builder.greaterThanOrEqualTo(dateExpression, fechaIni));
 			} else if (value.trim().contains("-")) {
 				// Supongo un between
 
@@ -215,8 +361,7 @@ public class QueryHelper {
 
 			} else {
 
-				return Optional.ofNullable(builder.like(builder.function("TO_CHAR", String.class, dateExpression,
-						builder.literal("dd/MM/yyyy HH24:MI:ss")), "%" + value + "%"));
+				return Optional.ofNullable(builder.equal(dateExpression, QueryHelper.parseDate(value)));
 
 			}
 		}

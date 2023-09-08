@@ -1,4 +1,4 @@
-package com.gt.toolbox.spb.webapps.payload;
+package com.gt.toolbox.spb.jpa.service.support;
 
 import java.io.Serializable;
 

@@ -1,4 +1,4 @@
-package com.gt.toolbox.spb.webapps.commons.infra.service;
+package com.gt.toolbox.spb.jpa.service;
 
 import java.lang.reflect.Method;
 //import java.lang.reflect.ParameterizedType;
@@ -28,8 +28,8 @@ import javax.persistence.criteria.Root;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.data.jpa.domain.Specification;
 
+import com.gt.toolbox.spb.jpa.service.support.FilterMeta;
 import com.gt.toolbox.spb.webapps.commons.infra.utils.Utils;
-import com.gt.toolbox.spb.webapps.payload.FilterMeta;
 
 public class QueryHelper {
 
