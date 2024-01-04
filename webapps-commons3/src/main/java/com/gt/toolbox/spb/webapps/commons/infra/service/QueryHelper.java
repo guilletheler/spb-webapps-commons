@@ -1,7 +1,7 @@
 package com.gt.toolbox.spb.webapps.commons.infra.service;
 
 import java.lang.reflect.Method;
-//import java.lang.reflect.ParameterizedType;
+// import java.lang.reflect.ParameterizedType;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.text.ParseException;
@@ -43,15 +43,18 @@ public class QueryHelper {
 		};
 	}
 
-	public static <T> Predicate buildPredicate(Root<T> root, CriteriaBuilder builder, FilterMeta filter) {
+	public static <T> Predicate buildPredicate(Root<T> root, CriteriaBuilder builder,
+			FilterMeta filter) {
 		return buildPredicate(root, builder, filter, new ArrayList<>());
 	}
 
-	public static <T> Predicate buildPredicate(Path<?> path, CriteriaBuilder builder, FilterMeta filter) {
+	public static <T> Predicate buildPredicate(Path<?> path, CriteriaBuilder builder,
+			FilterMeta filter) {
 		return buildPredicate(path, builder, filter, new ArrayList<>());
 	}
 
-	private static <T> Predicate buildPredicateAgrupador(Path<?> path, CriteriaBuilder builder, FilterMeta filter,
+	private static <T> Predicate buildPredicateAgrupador(Path<?> path, CriteriaBuilder builder,
+			FilterMeta filter,
 			List<String> pathAgregados) {
 
 		Predicate ret = null;
@@ -80,7 +83,8 @@ public class QueryHelper {
 		return ret;
 	}
 
-	private static <T> Predicate buildPredicate(Path<?> path, CriteriaBuilder builder, FilterMeta filter,
+	private static <T> Predicate buildPredicate(Path<?> path, CriteriaBuilder builder,
+			FilterMeta filter,
 			List<String> pathAgregados) {
 
 		Predicate ret = null;
@@ -148,17 +152,17 @@ public class QueryHelper {
 
 					curClass = m.getReturnType();
 					path.alias(curPath.replace(".", "_"));
-					// Logger.getLogger(QueryHelper.class.getName()).log(Level.INFO, "Seteando path
-					// de alias " + path.getAlias());
-				}
-				// }
 
-				ret = buildPredicate(path, builder, filter.getValue());
+				}
+
+				ret = buildPredicate(path, builder, filter.getValue(),
+						Collection.class.isAssignableFrom(curClass));
 
 			}
 		}
 
-		if (ret != null && filter.getOperator() != null && filter.getOperator().equalsIgnoreCase("NOT")) {
+		if (ret != null && filter.getOperator() != null
+				&& filter.getOperator().equalsIgnoreCase("NOT")) {
 			ret = ret.not();
 		}
 
@@ -169,6 +173,9 @@ public class QueryHelper {
 			String curKey) {
 
 		pathAgregados.add(curPath);
+
+		// Logger.getLogger(QueryHelper.class.getName()).log(Level.INFO,
+		// "Agregando join para " + curPath);
 
 		if (Root.class.isAssignableFrom(path.getClass())) {
 			path = ((Root<?>) path).join(curKey, JoinType.LEFT);
@@ -202,19 +209,94 @@ public class QueryHelper {
 		return m;
 	}
 
-	public static <T> Predicate buildPredicate(Path<?> path, CriteriaBuilder builder, String value) {
+	public static <T> Predicate buildPredicate(Path<?> path, CriteriaBuilder builder,
+			String value, boolean isCollection) {
 
-		Predicate ret = buildCollectionPredicate(builder, path, value)
-				.orElseGet(() -> buildIntegerPredicate(builder, path, value)
-						.orElseGet(() -> buildDecimalPredicate(builder, path, value)
-								.orElseGet(() -> buildBooleanPredicate(builder, path, value)
-										.orElseGet(() -> buildDatePredicate(builder, path, value)
-												.orElseGet(() -> buildDefaultPredicate(builder, path, value))))));
+		Predicate ret;
 
+		if (isCollection) {
+			ret = buildCollectionPredicate(builder, path, value);
+		} else {
+
+			ret = buildIntegerPredicate(builder, path, value)
+					.orElseGet(() -> buildDecimalPredicate(builder, path, value)
+							.orElseGet(() -> buildBooleanPredicate(builder, path, value)
+									.orElseGet(() -> buildDatePredicate(builder, path, value)
+											.orElseGet(() -> buildDatePredicate(builder, path,
+													value)
+															.orElseGet(
+																	() -> buildDefaultPredicate(
+																			builder,
+																			path, value))))));
+
+		}
 		return ret;
 	}
 
-	public static Predicate buildDefaultPredicate(CriteriaBuilder builder, Path<?> path, String value) {
+	public static Predicate buildDefaultPredicate(CriteriaBuilder builder, Path<?> path,
+			String value) {
+
+		Predicate ret = null;
+
+		String[] groupValues = value.split("\\+\\+");
+
+		for (String groupValue : groupValues) {
+			String[] orValues = groupValue.split("\\|\\|");
+
+			Predicate groupPredicate = null;
+
+			for (String orValue : orValues) {
+
+
+				String[] andValues = orValue.split("\\&\\&");
+
+				Predicate orPredicate = null;
+
+				for (String andValue : andValues) {
+					// Logger.getLogger(QueryHelper.class.getName()).info("agregando and para " +
+					// andValue);
+					Predicate andPredicate;
+					if (andValue.length() > 1 && andValue.startsWith("'")
+							&& andValue.endsWith("'")) {
+						andValue = andValue.substring(1, andValue.length() - 1);
+
+						andPredicate = builder.like(path.as(String.class),
+								andValue);
+					} else {
+						andPredicate = builder.like(builder.upper(path.as(String.class)),
+								"%" + andValue.toUpperCase() + "%");
+					}
+
+					if (orPredicate == null) {
+						orPredicate = andPredicate;
+					} else {
+						orPredicate = builder.and(orPredicate, andPredicate);
+					}
+				}
+				if (orPredicate != null) {
+					if (groupPredicate == null) {
+						groupPredicate = orPredicate;
+					} else {
+						groupPredicate = builder.or(groupPredicate, orPredicate);
+					}
+				}
+			}
+
+			if (groupPredicate != null) {
+				if (ret == null) {
+					ret = groupPredicate;
+				} else {
+					ret = builder.and(ret, groupPredicate);
+				}
+			}
+		}
+
+		return ret;
+
+	}
+
+	public static Predicate buildEnumPredicate(CriteriaBuilder builder, Path<?> path,
+			String value) {
 
 		Predicate ret = null;
 
@@ -237,7 +319,8 @@ public class QueryHelper {
 					// Logger.getLogger(QueryHelper.class.getName()).info("agregando and para " +
 					// andValue);
 					Predicate andPredicate;
-					if (andValue.length() > 1 && andValue.startsWith("'") && andValue.endsWith("'")) {
+					if (andValue.length() > 1 && andValue.startsWith("'")
+							&& andValue.endsWith("'")) {
 						andValue = andValue.substring(1, andValue.length() - 1);
 
 						andPredicate = builder.like(path.as(String.class),
@@ -283,35 +366,24 @@ public class QueryHelper {
 	 * @param value
 	 * @return
 	 */
-	public static Optional<Predicate> buildCollectionPredicate(CriteriaBuilder builder, Path<?> path, String value) {
+	public static Predicate buildCollectionPredicate(CriteriaBuilder builder,
+			Path<?> path, String value) {
 
-		if (Collection.class.isAssignableFrom(path.getJavaType())) {
+		var collectionPropertyName = path.getAlias();
 
-			var collectionPropertyName = path.getAlias();
+		Path<?> parentPath = path.getParentPath();
 
-			Path<?> parentPath = path.getParentPath();
-
-			if (Root.class.isAssignableFrom(parentPath.getClass())) {
-				path = ((Root<?>) parentPath).join(collectionPropertyName, JoinType.LEFT);
-			} else {
-				path = ((Join<?, ?>) parentPath).join(collectionPropertyName, JoinType.LEFT);
-			}
-
-			// while(tmpPath != null) {
-			// strPath = tmpPath.getJavaType().getSimpleName() + "." + strPath;
-			// tmpPath = tmpPath.getParentPath();
-			// }
-
-			Logger.getLogger(QueryHelper.class.getName()).log(Level.INFO,
-					"Creando predicate para collection " + value + " in " + collectionPropertyName);
-
-			var predicate = builder.like(path.as(String.class), "%" + value + "%");
-
-			return Optional.of(predicate);
-
+		if (Root.class.isAssignableFrom(parentPath.getClass())) {
+			path = ((Root<?>) parentPath).join(collectionPropertyName, JoinType.LEFT);
+		} else {
+			path = ((Join<?, ?>) parentPath).join(collectionPropertyName, JoinType.LEFT);
 		}
 
-		return Optional.empty();
+		var predicate =
+				builder.like(builder.upper(path.as(String.class)), "%" + value.toUpperCase() + "%");
+
+		return predicate;
+
 	}
 
 	/**
@@ -335,7 +407,8 @@ public class QueryHelper {
 				Date fechaFin = QueryHelper.parseDate(value.trim().substring(1).trim());
 				return Optional.ofNullable(builder.lessThanOrEqualTo(dateExpression, fechaFin));
 			} else if (value.trim().endsWith("-")) {
-				Date fechaIni = QueryHelper.parseDate(value.trim().substring(0, value.trim().length() - 1).trim());
+				Date fechaIni = QueryHelper
+						.parseDate(value.trim().substring(0, value.trim().length() - 1).trim());
 				return Optional.ofNullable(builder.greaterThanOrEqualTo(dateExpression, fechaIni));
 			} else if (value.trim().contains("-")) {
 				// Supongo un between
@@ -343,7 +416,7 @@ public class QueryHelper {
 				String[] fechas = value.trim().split("-");
 
 				if (fechas.length < 2) {
-					fechas = new String[] { fechas[0], "01/01/2100" };
+					fechas = new String[] {fechas[0], "01/01/2100"};
 				}
 
 				Date fechaIni = QueryHelper.parseDate(fechas[0].trim());
@@ -361,7 +434,8 @@ public class QueryHelper {
 
 			} else {
 
-				return Optional.ofNullable(builder.equal(dateExpression, QueryHelper.parseDate(value)));
+				return Optional
+						.ofNullable(builder.equal(dateExpression, QueryHelper.parseDate(value)));
 
 			}
 		}
@@ -378,14 +452,16 @@ public class QueryHelper {
 					|| value.trim().equalsIgnoreCase("true");
 
 			if (valor) {
-				return Optional.ofNullable(builder.equal(builder.coalesce(path, Boolean.FALSE), Boolean.TRUE));
+				return Optional.ofNullable(
+						builder.equal(builder.coalesce(path, Boolean.FALSE), Boolean.TRUE));
 			}
 
 			valor = value.trim().equalsIgnoreCase("no")
 					|| value.trim().equalsIgnoreCase("false");
 
 			if (valor) {
-				return Optional.ofNullable(builder.equal(builder.coalesce(path, Boolean.FALSE), Boolean.FALSE));
+				return Optional.ofNullable(
+						builder.equal(builder.coalesce(path, Boolean.FALSE), Boolean.FALSE));
 			}
 
 		}

@@ -12,10 +12,11 @@ import org.apache.commons.collections4.map.LRUMap;
  * @param <K>
  * @param <T>
  */
-public class SimpleInMemoryCache<K, T> {
+public class SimpleInMemoryCache<K, T> implements AutoCloseable {
 
 	private long timeToLive;
 	private LRUMap<K, SimpleCacheObject> simpleCacheMap;
+	CleanUpScheduler cleanUpScheduler;
 
 	protected class SimpleCacheObject {
 		public long lastAccessed = System.currentTimeMillis();
@@ -26,28 +27,34 @@ public class SimpleInMemoryCache<K, T> {
 		}
 	}
 
+	/**
+	 * Cache simple en memoria
+	 * 
+	 * @param secondsToLive   tiempo de vida de cada objeto
+	 * @param secondsInterval tiempo cada cuánto se fija para ver si debe retirar un
+	 *                        objeto
+	 * @param maxItems        cantidad máxima de ítems a guardar
+	 */
 	public SimpleInMemoryCache(long secondsToLive, final long secondsInterval, int maxItems) {
 		this.timeToLive = secondsToLive * 1000;
 
 		simpleCacheMap = new LRUMap<>(maxItems);
 
 		if (timeToLive > 0 && secondsInterval > 0) {
-
-			Thread t = new Thread(new Runnable() {
-				public void run() {
-					while (true) {
-						try {
-							Thread.sleep(secondsInterval * 1000);
-						} catch (InterruptedException ex) {
-						}
-						cleanup();
-					}
-				}
-			});
-
-			t.setDaemon(true);
-			t.start();
+			createCleanUpDaemon(secondsInterval);
 		}
+	}
+
+	public void clear() {
+		synchronized (simpleCacheMap) {
+			this.simpleCacheMap.clear();
+		}
+	}
+
+	private void createCleanUpDaemon(final long secondsInterval) {
+		this.cleanUpScheduler = new CleanUpScheduler(this, secondsInterval);
+		
+		this.cleanUpScheduler.start();
 	}
 
 	public void put(K key, T value) {
@@ -108,7 +115,51 @@ public class SimpleInMemoryCache<K, T> {
 				simpleCacheMap.remove(key);
 			}
 
+			// Se agrega esto para que le de prioridad a otros procesos
 			Thread.yield();
 		}
+	}
+
+	@Override
+	public void close() throws Exception {
+		this.cleanUpScheduler.stopCleanUp();
+	}
+
+	private class CleanUpScheduler extends Thread {
+
+		long secondsInterval;
+		SimpleInMemoryCache<K, T> owner;
+		boolean isStopped = false;
+
+		public CleanUpScheduler(SimpleInMemoryCache<K, T> owner, long secondsInterval) {
+			super();
+			this.owner = owner;
+			this.secondsInterval = secondsInterval;
+			
+			// Al setearlo en true el programa se para igual
+			// aunque el thread esté corriendo
+			this.setDaemon(true);
+		}
+
+		public void run() {
+			boolean internalIsStopped = false;
+			while (!internalIsStopped) {
+				synchronized (this) {
+					internalIsStopped = this.isStopped;
+				}
+				try {
+					Thread.sleep(this.secondsInterval * 1000);
+				} catch (InterruptedException ex) {
+				}
+				owner.cleanup();
+			}
+		}
+
+		public void stopCleanUp() {
+			synchronized (this) {
+				this.isStopped = true;
+			}
+		}
+
 	}
 }
