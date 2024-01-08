@@ -5,8 +5,7 @@ import java.io.Serializable;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
-import com.gt.toolbox.spb.webapps.commons.infra.utils.EntityDetailLevel;
-
+import com.gt.toolbox.spb.webapps.commons.infra.dto.EntityDetailLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;

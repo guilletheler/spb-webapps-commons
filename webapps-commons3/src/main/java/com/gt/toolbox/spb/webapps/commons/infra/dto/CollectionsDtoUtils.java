@@ -15,13 +15,14 @@ import org.springframework.data.repository.CrudRepository;
 
 public class CollectionsDtoUtils {
 
-	/**
-	 * Toma como base la colección base e incorpora o quita la colección toSynch
-	 * @param <T>
-	 * @param base
-	 * @param toSynch
-	 * @return
-	 */
+    /**
+     * Toma como base la colección base e incorpora o quita la colección toSynch
+     * 
+     * @param <T>
+     * @param base
+     * @param toSynch
+     * @return
+     */
     public static <T> Collection<T> synchronize(Collection<T> base, Collection<T> toSynch) {
         if (base == null) {
             return toSynch;
@@ -42,6 +43,7 @@ public class CollectionsDtoUtils {
 
     /**
      * Toma como base la colección base e incorpora o quita la colección toSynch
+     * 
      * @param <T>
      * @param base
      * @param toSynch
@@ -60,6 +62,7 @@ public class CollectionsDtoUtils {
 
     /**
      * Toma como base la colección base e incorpora o quita la colección toSynch
+     * 
      * @param <E>
      * @param <D>
      * @param base
@@ -68,7 +71,7 @@ public class CollectionsDtoUtils {
      * @return
      */
     public static <E, D> Collection<E> synchronize(Collection<E> base, Collection<D> toSynch,
-            DtoConverter<E, D> converter) {
+            IDtoConverter<E, D> converter) {
 
         List<E> toRemove = findToRemove(base, toSynch, converter);
 
@@ -78,7 +81,8 @@ public class CollectionsDtoUtils {
             for (D dto : toSynch) {
 
                 // Busco el dto en la colección de entidades
-                E entity = base.stream().filter(e -> converter.sameKey(e, dto)).findFirst().orElse(null);
+                E entity = base.stream().filter(e -> converter.sameKey(e, dto)).findFirst()
+                        .orElse(null);
 
                 if (entity == null) {
                     // si no está creo la entidad y la agrego a la lista
@@ -97,6 +101,7 @@ public class CollectionsDtoUtils {
 
     /**
      * Toma como base la colección base e incorpora o quita la colección toSynch
+     * 
      * @param <ID>
      * @param <E>
      * @param <D>
@@ -108,7 +113,7 @@ public class CollectionsDtoUtils {
      */
     public static <ID, E extends IWithId<ID>, D extends IWithId<ID>> Collection<E> synchronize(
             Collection<E> base, Collection<D> toSynch,
-            DtoConverter<E, D> converter, CrudRepository<E, ID> repo) {
+            IDtoConverter<E, D> converter, CrudRepository<E, ID> repo) {
 
         List<E> toRemove = findEntitiesToRemove(base, toSynch);
 
@@ -140,6 +145,7 @@ public class CollectionsDtoUtils {
 
     /**
      * Toma como base la colección base e incorpora o quita la colección toSynch
+     * 
      * @param <E>
      * @param <D>
      * @param base
@@ -148,7 +154,7 @@ public class CollectionsDtoUtils {
      * @return
      */
     public static <E, D> List<E> findToRemove(Collection<E> base, Collection<D> toSynch,
-            DtoConverter<E, D> converter) {
+            IDtoConverter<E, D> converter) {
         List<E> toRemove = new ArrayList<>();
 
         for (E entity : base) {
@@ -175,6 +181,7 @@ public class CollectionsDtoUtils {
 
     /**
      * Convierte un Map<K, V> en una List<KeyValueDto<K, V>>
+     * 
      * @param <K>
      * @param <V>
      * @param map
@@ -187,7 +194,8 @@ public class CollectionsDtoUtils {
     }
 
     /**
-     * Convierte un Entry<K, V> en un KeyValueDto<K, V> 
+     * Convierte un Entry<K, V> en un KeyValueDto<K, V>
+     * 
      * @param <V>
      * @param <K>
      * @param entry
@@ -198,7 +206,9 @@ public class CollectionsDtoUtils {
     }
 
     /**
-     * Toma como base el Map<K, V> base e incorpora o quita la lista de List<KeyValueDto<K, V>> toSynch
+     * Toma como base el Map<K, V> base e incorpora o quita la lista de List<KeyValueDto<K, V>>
+     * toSynch
+     * 
      * @param <K>
      * @param <V>
      * @param base
@@ -215,6 +225,30 @@ public class CollectionsDtoUtils {
         keysToRemove.forEach(key -> base.remove(key));
 
         toSynch.forEach(par -> base.put(par.getKey(), par.getValue()));
+
+        return base;
+    }
+
+    /**
+     * Toma como base el Map<K, V> base e incorpora o quita la lista de List<KeyValueDto<K, V>>
+     * toSynch
+     * 
+     * @param <K>
+     * @param <V>
+     * @param base
+     * @param toSynch
+     * @return
+     */
+    public static <K, V> Map<K, V> sinchronize(Map<K, V> base, Map<K, V> toSynch) {
+        List<K> keysToRemove = base.entrySet().stream().filter(
+                par -> toSynch.entrySet().stream()
+                        .noneMatch(localParam -> Objects.equals(localParam.getKey(), par.getKey())))
+                .map(par -> par.getKey())
+                .collect(Collectors.toList());
+
+        keysToRemove.forEach(key -> base.remove(key));
+
+        toSynch.entrySet().forEach(par -> base.put(par.getKey(), par.getValue()));
 
         return base;
     }
