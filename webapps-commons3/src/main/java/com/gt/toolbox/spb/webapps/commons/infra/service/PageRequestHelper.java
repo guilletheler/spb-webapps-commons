@@ -3,7 +3,7 @@ package com.gt.toolbox.spb.webapps.commons.infra.service;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
-
+import org.springframework.lang.NonNull;
 import com.gt.toolbox.spb.webapps.payload.FilterMeta;
 import com.gt.toolbox.spb.webapps.payload.PageRequest;
 import com.gt.toolbox.spb.webapps.payload.SortMeta;
@@ -18,6 +18,7 @@ import jakarta.persistence.criteria.Root;
 
 public class PageRequestHelper {
 
+    @NonNull
     public static Pageable toPageable(PageRequest pageRequest) {
 
         if (pageRequest == null) {
@@ -90,8 +91,9 @@ public class PageRequestHelper {
         return ret;
     }
 
+    @NonNull
     public static <T> Specification<T> toSpecification(PageRequest pageRequest) {
-        if(pageRequest == null) {
+        if (pageRequest == null) {
             pageRequest = new PageRequest();
             pageRequest.setFirst(0);
             pageRequest.setRows(Integer.MAX_VALUE);
@@ -104,7 +106,8 @@ public class PageRequestHelper {
         };
     }
 
-    private static <T> Predicate buildPredicate(PageRequest pageRequest, Root<T> root, CriteriaBuilder builder) {
+    private static <T> Predicate buildPredicate(PageRequest pageRequest, Root<T> root,
+            CriteriaBuilder builder) {
         if (pageRequest == null || pageRequest.getFilter() == null) {
             return QueryHelper.alwaysTrue(builder);
         }
@@ -114,7 +117,8 @@ public class PageRequestHelper {
         return ret;
     }
 
-    private static <T> Predicate buildPredicate(Root<T> root, CriteriaBuilder builder, FilterMeta filter) {
+    private static <T> Predicate buildPredicate(Root<T> root, CriteriaBuilder builder,
+            FilterMeta filter) {
 
         Predicate ret = QueryHelper.buildPredicate(root, builder, filter);
 

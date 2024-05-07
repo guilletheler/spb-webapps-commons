@@ -2,16 +2,17 @@ package com.gt.toolbox.spb.webapps.commons.infra.dto;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.logging.Logger;
 import java.util.Objects;
+import java.util.Set;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
-
-import com.gt.toolbox.spb.webapps.commons.infra.model.IWithId;
-
 import org.springframework.data.repository.CrudRepository;
+import com.gt.toolbox.spb.webapps.commons.infra.model.IWithId;
 
 public class CollectionsDtoUtils {
 
@@ -24,17 +25,16 @@ public class CollectionsDtoUtils {
      * @return
      */
     public static <T> Collection<T> synchronize(Collection<T> base, Collection<T> toSynch) {
-        if (base == null) {
-            return toSynch;
-        }
+        if (base != null && toSynch != null) {
 
-        List<T> toRemove = findToRemove(base, toSynch);
+            List<T> toRemove = findToRemove(base, toSynch);
 
-        base.removeAll(toRemove);
+            base.removeAll(toRemove);
 
-        for (T item : toSynch) {
-            if (!base.contains(item)) {
-                base.add(item);
+            for (T item : toSynch) {
+                if (!base.contains(item)) {
+                    base.add(item);
+                }
             }
         }
 
@@ -69,6 +69,7 @@ public class CollectionsDtoUtils {
      * @param toSynch
      * @param converter
      * @return
+     * @throws BackendException
      */
     public static <E, D> Collection<E> synchronize(Collection<E> base, Collection<D> toSynch,
             IDtoConverter<E, D> converter) {
@@ -128,7 +129,10 @@ public class CollectionsDtoUtils {
                         .orElse(null);
 
                 if (entity == null) {
-                    entity = repo.findById(dto.getId()).orElse(null);
+                    var dtoId = dto.getId();
+                    if (dtoId != null) {
+                        entity = repo.findById(dtoId).orElse(null);
+                    }
                     if (entity != null) {
                         base.add(entity);
                     } else {
@@ -216,15 +220,19 @@ public class CollectionsDtoUtils {
      * @return
      */
     public static <K, V> Map<K, V> sinchronize(Map<K, V> base, List<KeyValueDto<K, V>> toSynch) {
-        List<K> keysToRemove = base.entrySet().stream().filter(
-                par -> toSynch.stream()
-                        .noneMatch(localParam -> Objects.equals(localParam.getKey(), par.getKey())))
-                .map(par -> par.getKey())
-                .collect(Collectors.toList());
+        if (toSynch != null) {
 
-        keysToRemove.forEach(key -> base.remove(key));
+            List<K> keysToRemove = base.entrySet().stream().filter(
+                    par -> toSynch.stream()
+                            .noneMatch(localParam -> Objects.equals(localParam.getKey(),
+                                    par.getKey())))
+                    .map(par -> par.getKey())
+                    .collect(Collectors.toList());
 
-        toSynch.forEach(par -> base.put(par.getKey(), par.getValue()));
+            keysToRemove.forEach(key -> base.remove(key));
+
+            toSynch.forEach(par -> base.put(par.getKey(), par.getValue()));
+        }
 
         return base;
     }
@@ -240,16 +248,51 @@ public class CollectionsDtoUtils {
      * @return
      */
     public static <K, V> Map<K, V> sinchronize(Map<K, V> base, Map<K, V> toSynch) {
-        List<K> keysToRemove = base.entrySet().stream().filter(
-                par -> toSynch.entrySet().stream()
-                        .noneMatch(localParam -> Objects.equals(localParam.getKey(), par.getKey())))
-                .map(par -> par.getKey())
-                .collect(Collectors.toList());
 
-        keysToRemove.forEach(key -> base.remove(key));
+        if (toSynch != null) {
 
-        toSynch.entrySet().forEach(par -> base.put(par.getKey(), par.getValue()));
+            List<K> keysToRemove = base.entrySet().stream().filter(
+                    par -> toSynch.entrySet().stream()
+                            .noneMatch(localParam -> Objects.equals(localParam.getKey(),
+                                    par.getKey())))
+                    .map(par -> par.getKey())
+                    .collect(Collectors.toList());
+
+            keysToRemove.forEach(key -> base.remove(key));
+
+            toSynch.entrySet().forEach(par -> base.put(par.getKey(), par.getValue()));
+        }
 
         return base;
+    }
+
+    public static <K, V> Map<K, V> cloneMap(Map<K, V> original) {
+        Map<K, V> ret = new HashMap<>();
+        if (original != null) {
+
+            original.forEach((k, v) -> {
+                ret.put(k, v);
+            });
+        }
+        return ret;
+    }
+
+    public static <T> List<T> cloneList(List<T> original) {
+        List<T> ret = new ArrayList<>();
+
+        if (original != null) {
+            ret.addAll(original);
+        }
+
+        return ret;
+    }
+
+    public static <T> Set<T> cloneSet(Set<T> original) {
+        Set<T> ret = new HashSet<>();
+
+        if (original != null) {
+            ret.addAll(original);
+        }
+        return ret;
     }
 }

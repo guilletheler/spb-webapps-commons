@@ -1,8 +1,12 @@
 package com.gt.toolbox.spb.webapps.commons.infra.utils;
 
+import java.io.Closeable;
+import java.io.IOException;
 import java.util.ArrayList;
-
-import org.apache.commons.collections4.MapIterator;
+import java.util.Collections;
+import java.util.Map;
+import java.util.Timer;
+import java.util.TimerTask;
 import org.apache.commons.collections4.map.LRUMap;
 
 /**
@@ -12,36 +16,50 @@ import org.apache.commons.collections4.map.LRUMap;
  * @param <K>
  * @param <T>
  */
-public class SimpleInMemoryCache<K, T> implements AutoCloseable {
+public class SimpleInMemoryCache<K, T> implements Closeable {
 
-	private long timeToLive;
-	private LRUMap<K, SimpleCacheObject> simpleCacheMap;
-	CleanUpScheduler cleanUpScheduler;
-
-	protected class SimpleCacheObject {
-		public long lastAccessed = System.currentTimeMillis();
-		public T value;
-
-		protected SimpleCacheObject(T value) {
-			this.value = value;
-		}
-	}
+	private long cleanupDelay;
+	private Map<K, SimpleCacheObject<K, T>> simpleCacheMap;
+	Timer cleanupTimer;
+	boolean closed = false;
+	boolean ownCleanupTimer = true;
 
 	/**
 	 * Cache simple en memoria
 	 * 
-	 * @param secondsToLive   tiempo de vida de cada objeto
-	 * @param secondsInterval tiempo cada cuánto se fija para ver si debe retirar un
-	 *                        objeto
-	 * @param maxItems        cantidad máxima de ítems a guardar
+	 * @param toLiveSeconds tiempo de vida de cada objeto
+	 * @param cleanupDelaySeconds tiempo cada cuánto se ejecuta el cleanup
+	 * @param maxItems cantidad máxima de ítems a guardar
 	 */
-	public SimpleInMemoryCache(long secondsToLive, final long secondsInterval, int maxItems) {
-		this.timeToLive = secondsToLive * 1000;
+	public SimpleInMemoryCache(long toLiveSeconds, final long cleanupDelaySeconds, int maxItems) {
+		this(toLiveSeconds, cleanupDelaySeconds, maxItems, null);
+	}
 
-		simpleCacheMap = new LRUMap<>(maxItems);
+	/**
+	 * Cache simple en memoria<br/>
+	 * Posibilidad de setear un timer externo para uso de múltiples cache
+	 * 
+	 * @param toLiveSeconds tiempo de vida de cada objeto
+	 * @param cleanupDelaySeconds tiempo cada cuánto se ejecuta el cleanup
+	 * @param maxItems cantidad máxima de ítems a guardar
+	 * @param cleanupTimer timer que se va a utilizar para programar y ejecutar el cleanup
+	 */
+	public SimpleInMemoryCache(long toLiveSeconds, final long cleanupDelaySeconds, int maxItems,
+			Timer cleanupTimer) {
 
-		if (timeToLive > 0 && secondsInterval > 0) {
-			createCleanUpDaemon(secondsInterval);
+		simpleCacheMap = Collections.synchronizedMap(new LRUMap<>(maxItems));
+
+		if (cleanupTimer == null) {
+			ownCleanupTimer = true;
+			cleanupTimer = new Timer(true);
+		} else {
+			ownCleanupTimer = false;
+		}
+		this.cleanupTimer = cleanupTimer;
+
+		if (toLiveSeconds > 0 && cleanupDelaySeconds > 0) {
+			this.cleanupDelay = cleanupDelaySeconds * 1000;
+			scheduleCleanup();
 		}
 	}
 
@@ -51,115 +69,84 @@ public class SimpleInMemoryCache<K, T> implements AutoCloseable {
 		}
 	}
 
-	private void createCleanUpDaemon(final long secondsInterval) {
-		this.cleanUpScheduler = new CleanUpScheduler(this, secondsInterval);
-		
-		this.cleanUpScheduler.start();
+	private void scheduleCleanup() {
+
+		if (this.cleanupTimer != null) {
+			this.cleanupTimer.schedule(new TimerTask() {
+				@Override
+				public void run() {
+					cleanup();
+					if (!closed) {
+						scheduleCleanup();
+					}
+				}
+			}, this.cleanupDelay);
+		}
 	}
 
 	public void put(K key, T value) {
 		synchronized (simpleCacheMap) {
-			simpleCacheMap.put(key, new SimpleCacheObject(value));
+			simpleCacheMap.put(key, new SimpleCacheObject<K, T>(value));
 		}
 	}
 
-	public T get(K key) {
-		synchronized (simpleCacheMap) {
-			SimpleCacheObject c = (SimpleCacheObject) simpleCacheMap.get(key);
+	public boolean contains(K key) {
+		return simpleCacheMap.containsKey(key);
+	}
 
-			if (c == null)
-				return null;
-			else {
-				c.lastAccessed = System.currentTimeMillis();
-				return c.value;
-			}
+	public T get(K key) {
+		return getWrapped(key).value;
+	}
+
+	protected SimpleCacheObject<K, T> getWrapped(K key) {
+		SimpleCacheObject<K, T> c = (SimpleCacheObject<K, T>) simpleCacheMap.get(key);
+
+		if (c == null)
+			return null;
+		else {
+			c.lastAccessed = System.currentTimeMillis();
+			return c;
 		}
 	}
 
 	public void remove(K key) {
-		synchronized (simpleCacheMap) {
-			simpleCacheMap.remove(key);
-		}
+		simpleCacheMap.remove(key);
 	}
 
 	public int size() {
-		synchronized (simpleCacheMap) {
-			return simpleCacheMap.size();
-		}
+		return simpleCacheMap.size();
 	}
 
 	public void cleanup() {
 
 		long now = System.currentTimeMillis();
-		ArrayList<K> deleteKey = null;
+		var deleteKey = new ArrayList<K>();
 
 		synchronized (simpleCacheMap) {
-			MapIterator<K, SimpleCacheObject> itr = simpleCacheMap.mapIterator();
-
-			deleteKey = new ArrayList<K>((simpleCacheMap.size() / 2) + 1);
-			K key = null;
-			SimpleCacheObject c = null;
-
-			while (itr.hasNext()) {
-				key = (K) itr.next();
-				c = (SimpleCacheObject) itr.getValue();
-
-				if (c != null && (now > (timeToLive + c.lastAccessed))) {
-					deleteKey.add(key);
+			for (var entry : simpleCacheMap.entrySet()) {
+				if (entry.getKey() != null
+						&& (now > (cleanupDelay + entry.getValue().lastAccessed))) {
+					deleteKey.add(entry.getKey());
 				}
 			}
 		}
 
-		for (K key : deleteKey) {
-			synchronized (simpleCacheMap) {
+		synchronized (simpleCacheMap) {
+			for (K key : deleteKey) {
 				simpleCacheMap.remove(key);
+				// Se agrega esto para que le de prioridad a otros procesos
+				Thread.yield();
 			}
-
-			// Se agrega esto para que le de prioridad a otros procesos
-			Thread.yield();
 		}
 	}
 
 	@Override
-	public void close() throws Exception {
-		this.cleanUpScheduler.stopCleanUp();
+	public void close() throws IOException {
+		this.closed = true;
+		if (ownCleanupTimer && cleanupTimer != null) {
+			cleanupTimer.cancel();
+			cleanupTimer = null;
+		}
 	}
 
-	private class CleanUpScheduler extends Thread {
-
-		long secondsInterval;
-		SimpleInMemoryCache<K, T> owner;
-		boolean isStopped = false;
-
-		public CleanUpScheduler(SimpleInMemoryCache<K, T> owner, long secondsInterval) {
-			super();
-			this.owner = owner;
-			this.secondsInterval = secondsInterval;
-			
-			// Al setearlo en true el programa se para igual
-			// aunque el thread esté corriendo
-			this.setDaemon(true);
-		}
-
-		public void run() {
-			boolean internalIsStopped = false;
-			while (!internalIsStopped) {
-				synchronized (this) {
-					internalIsStopped = this.isStopped;
-				}
-				try {
-					Thread.sleep(this.secondsInterval * 1000);
-				} catch (InterruptedException ex) {
-				}
-				owner.cleanup();
-			}
-		}
-
-		public void stopCleanUp() {
-			synchronized (this) {
-				this.isStopped = true;
-			}
-		}
-
-	}
 }

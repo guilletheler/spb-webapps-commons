@@ -14,13 +14,10 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.data.jpa.domain.Specification;
-
 import com.gt.toolbox.spb.webapps.commons.infra.utils.Utils;
 import com.gt.toolbox.spb.webapps.payload.FilterMeta;
-
 import jakarta.persistence.Entity;
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.CriteriaQuery;
@@ -61,6 +58,7 @@ public class QueryHelper {
 
 		for (var child : filter.getChildrens()) {
 			Predicate tmpPredicate = buildPredicate(path, builder, child, pathAgregados);
+
 			if (tmpPredicate != null) {
 
 				if (ret == null) {
@@ -212,150 +210,114 @@ public class QueryHelper {
 	public static <T> Predicate buildPredicate(Path<?> path, CriteriaBuilder builder,
 			String value, boolean isCollection) {
 
-		Predicate ret;
+		Predicate ret = null;
 
-		if (isCollection) {
-			ret = buildCollectionPredicate(builder, path, value);
-		} else {
+		var filterMeta = exprToFilterMeta(value);
 
-			ret = buildIntegerPredicate(builder, path, value)
-					.orElseGet(() -> buildDecimalPredicate(builder, path, value)
-							.orElseGet(() -> buildBooleanPredicate(builder, path, value)
-									.orElseGet(() -> buildDatePredicate(builder, path, value)
-											.orElseGet(() -> buildDatePredicate(builder, path,
-													value)
-															.orElseGet(
-																	() -> buildDefaultPredicate(
-																			builder,
-																			path, value))))));
+		ret = buildFiltermetaPredicate(path, builder, filterMeta, isCollection);
 
-		}
+
 		return ret;
+	}
+
+	private static <T> Predicate buildFiltermetaPredicate(Path<?> path, CriteriaBuilder builder,
+			FilterMeta filterMeta, boolean isCollection) {
+		Predicate ret = null;
+		if (filterMeta.getChildrens() != null && !filterMeta.getChildrens().isEmpty()) {
+			switch (filterMeta.getOperator().toUpperCase()) {
+				case "OR":
+					var ors = filterMeta.getChildrens().stream().map(
+							fm -> buildFiltermetaPredicate(path, builder, fm, isCollection))
+							.filter(pr -> pr != null)
+							.toList();
+					if (!ors.isEmpty()) {
+						ret = builder.or(ors.toArray(new Predicate[0]));
+					}
+					break;
+				case "AND":
+					var ands = filterMeta.getChildrens().stream().map(
+							fm -> buildFiltermetaPredicate(path, builder, fm,
+									isCollection))
+							.filter(pr -> pr != null)
+							.toList();
+					if (!ands.isEmpty()) {
+						ret = builder.and(ands.toArray(new Predicate[0]));
+					}
+					break;
+				case "NOT":
+					var not = buildFiltermetaPredicate(path, builder,
+							filterMeta.getChildrens().get(0), isCollection);
+					ret = builder.not(not);
+					break;
+
+				default:
+					if (isCollection) {
+						ret = buildCollectionPredicate(builder, path, filterMeta.getValue());
+					} else {
+						ret = buildPredicate(path, builder, filterMeta.getValue());
+					}
+					break;
+			}
+		} else {
+			if (isCollection) {
+				ret = buildCollectionPredicate(builder, path, filterMeta.getValue());
+			} else {
+				ret = buildPredicate(path, builder, filterMeta.getValue());
+			}
+		}
+
+		return ret;
+	}
+
+	private static <T> Predicate buildPredicate(Path<?> path, CriteriaBuilder builder,
+			String value) {
+		return buildIntegerPredicate(builder, path, value)
+				.orElseGet(() -> buildDecimalPredicate(builder, path, value)
+						.orElseGet(() -> buildBooleanPredicate(builder, path, value)
+								.orElseGet(() -> buildDatePredicate(builder, path, value)
+										.orElseGet(
+												() -> buildDatePredicate(builder, path, value)
+														.orElseGet(() -> buildDefaultPredicate(
+																builder, path, value))))));
+
 	}
 
 	public static Predicate buildDefaultPredicate(CriteriaBuilder builder, Path<?> path,
 			String value) {
 
-		Predicate ret = null;
+		Predicate predicate;
+		if (value.length() > 1 && value.startsWith("'")
+				&& value.endsWith("'")) {
+			value = value.substring(1, value.length() - 1);
 
-		String[] groupValues = value.split("\\+\\+");
-
-		for (String groupValue : groupValues) {
-			String[] orValues = groupValue.split("\\|\\|");
-
-			Predicate groupPredicate = null;
-
-			for (String orValue : orValues) {
-
-
-				String[] andValues = orValue.split("\\&\\&");
-
-				Predicate orPredicate = null;
-
-				for (String andValue : andValues) {
-					// Logger.getLogger(QueryHelper.class.getName()).info("agregando and para " +
-					// andValue);
-					Predicate andPredicate;
-					if (andValue.length() > 1 && andValue.startsWith("'")
-							&& andValue.endsWith("'")) {
-						andValue = andValue.substring(1, andValue.length() - 1);
-
-						andPredicate = builder.like(path.as(String.class),
-								andValue);
-					} else {
-						andPredicate = builder.like(builder.upper(path.as(String.class)),
-								"%" + andValue.toUpperCase() + "%");
-					}
-
-					if (orPredicate == null) {
-						orPredicate = andPredicate;
-					} else {
-						orPredicate = builder.and(orPredicate, andPredicate);
-					}
-				}
-				if (orPredicate != null) {
-					if (groupPredicate == null) {
-						groupPredicate = orPredicate;
-					} else {
-						groupPredicate = builder.or(groupPredicate, orPredicate);
-					}
-				}
-			}
-
-			if (groupPredicate != null) {
-				if (ret == null) {
-					ret = groupPredicate;
-				} else {
-					ret = builder.and(ret, groupPredicate);
-				}
-			}
+			predicate = builder.like(path.as(String.class),
+					value);
+		} else {
+			predicate = builder.like(builder.upper(path.as(String.class)),
+					"%" + value.toUpperCase() + "%");
 		}
 
-		return ret;
+
+		return predicate;
 
 	}
 
 	public static Predicate buildEnumPredicate(CriteriaBuilder builder, Path<?> path,
 			String value) {
 
-		Predicate ret = null;
+		Predicate predicate;
+		if (value.length() > 1 && value.startsWith("'")
+				&& value.endsWith("'")) {
+			value = value.substring(1, value.length() - 1);
 
-		String[] groupValues = value.split("\\+\\+");
-
-		for (String groupValue : groupValues) {
-			String[] orValues = groupValue.split("\\|\\|");
-
-			Predicate groupPredicate = null;
-
-			for (String orValue : orValues) {
-				// Logger.getLogger(QueryHelper.class.getName()).info("generando OR para " +
-				// orValue);
-
-				String[] andValues = orValue.split("\\&\\&");
-
-				Predicate orPredicate = null;
-
-				for (String andValue : andValues) {
-					// Logger.getLogger(QueryHelper.class.getName()).info("agregando and para " +
-					// andValue);
-					Predicate andPredicate;
-					if (andValue.length() > 1 && andValue.startsWith("'")
-							&& andValue.endsWith("'")) {
-						andValue = andValue.substring(1, andValue.length() - 1);
-
-						andPredicate = builder.like(path.as(String.class),
-								andValue);
-					} else {
-						andPredicate = builder.like(builder.upper(path.as(String.class)),
-								"%" + andValue.toUpperCase() + "%");
-					}
-
-					if (orPredicate == null) {
-						orPredicate = andPredicate;
-					} else {
-						orPredicate = builder.and(orPredicate, andPredicate);
-					}
-				}
-				if (orPredicate != null) {
-					if (groupPredicate == null) {
-						groupPredicate = orPredicate;
-					} else {
-						groupPredicate = builder.or(groupPredicate, orPredicate);
-					}
-				}
-			}
-
-			if (groupPredicate != null) {
-				if (ret == null) {
-					ret = groupPredicate;
-				} else {
-					ret = builder.and(ret, groupPredicate);
-				}
-			}
+			predicate = builder.like(path.as(String.class),
+					value);
+		} else {
+			predicate = builder.like(builder.upper(path.as(String.class)),
+					"%" + value.toUpperCase() + "%");
 		}
 
-		return ret;
-
+		return predicate;
 	}
 
 	/**
@@ -400,12 +362,21 @@ public class QueryHelper {
 
 			Expression<Date> dateExpression = path.as(Date.class);
 
-			if (value.trim().startsWith("-") || value.trim().startsWith(">")) {
+			if (value.trim().startsWith("-")) {
 				Date fechaFin = QueryHelper.parseDate(value.trim().substring(1).trim());
+				return Optional.ofNullable(builder.lessThanOrEqualTo(dateExpression, fechaFin));
+			} else if (value.trim().startsWith(">=")) {
+				Date fechaFin = QueryHelper.parseDate(value.trim().substring(2).trim());
+				return Optional.ofNullable(builder.lessThanOrEqualTo(dateExpression, fechaFin));
+			} else if (value.trim().startsWith(">")) {
+				Date fechaFin = QueryHelper.parseDate(value.trim().substring(1).trim());
+				return Optional.ofNullable(builder.lessThanOrEqualTo(dateExpression, fechaFin));
+			} else if (value.trim().startsWith("<=")) {
+				Date fechaFin = QueryHelper.parseDate(value.trim().substring(2).trim());
 				return Optional.ofNullable(builder.lessThanOrEqualTo(dateExpression, fechaFin));
 			} else if (value.trim().startsWith("<")) {
 				Date fechaFin = QueryHelper.parseDate(value.trim().substring(1).trim());
-				return Optional.ofNullable(builder.lessThanOrEqualTo(dateExpression, fechaFin));
+				return Optional.ofNullable(builder.lessThan(dateExpression, fechaFin));
 			} else if (value.trim().endsWith("-")) {
 				Date fechaIni = QueryHelper
 						.parseDate(value.trim().substring(0, value.trim().length() - 1).trim());
@@ -472,10 +443,6 @@ public class QueryHelper {
 			String value) {
 
 		if (isDecimalClass(path.getJavaType())) {
-
-			// Logger.getLogger(QueryHelper.class.getName()).log(Level.INFO,
-			// "Generando predicado de decimal para " + value);
-
 			Expression<BigDecimal> numberExpression = path.as(BigDecimal.class);
 
 			BigDecimal tmpDoubleValue;
@@ -487,15 +454,28 @@ public class QueryHelper {
 					tmpDoubleValue = BigDecimal.valueOf(Double.valueOf(tmpString));
 					return Optional.ofNullable(builder.equal(numberExpression, tmpDoubleValue));
 				}
+				if (value.startsWith("<=")) {
+					tmpString = value.substring(2).trim().replace(",", ".");
+					tmpDoubleValue = BigDecimal.valueOf(Double.valueOf(tmpString));
+					return Optional.ofNullable(
+							builder.lessThanOrEqualTo(numberExpression, tmpDoubleValue));
+				}
 				if (value.startsWith("<")) {
 					tmpString = value.substring(1).trim().replace(",", ".");
 					tmpDoubleValue = BigDecimal.valueOf(Double.valueOf(tmpString));
-					return Optional.ofNullable(builder.le(numberExpression, tmpDoubleValue));
+					return Optional.ofNullable(builder.lessThan(numberExpression, tmpDoubleValue));
+				}
+				if (value.startsWith(">=")) {
+					tmpString = value.substring(2).trim().replace(",", ".");
+					tmpDoubleValue = BigDecimal.valueOf(Double.valueOf(tmpString));
+					return Optional.ofNullable(
+							builder.greaterThanOrEqualTo(numberExpression, tmpDoubleValue));
 				}
 				if (value.startsWith(">")) {
 					tmpString = value.substring(1).trim().replace(",", ".");
 					tmpDoubleValue = BigDecimal.valueOf(Double.valueOf(tmpString));
-					return Optional.ofNullable(builder.ge(numberExpression, tmpDoubleValue));
+					return Optional
+							.ofNullable(builder.greaterThan(numberExpression, tmpDoubleValue));
 				}
 			} catch (NumberFormatException ex) {
 				// Logger.getLogger(QueryHelper.class.getName()).log(Level.WARNING,
@@ -525,15 +505,27 @@ public class QueryHelper {
 					tmpLongValue = BigInteger.valueOf(Long.valueOf(tmpString));
 					return Optional.ofNullable(builder.equal(numberExpression, tmpLongValue));
 				}
+				if (value.startsWith("<=")) {
+					tmpString = value.substring(2).trim();
+					tmpLongValue = BigInteger.valueOf(Long.valueOf(tmpString));
+					return Optional
+							.ofNullable(builder.lessThanOrEqualTo(numberExpression, tmpLongValue));
+				}
 				if (value.startsWith("<")) {
 					tmpString = value.substring(1).trim();
 					tmpLongValue = BigInteger.valueOf(Long.valueOf(tmpString));
-					return Optional.ofNullable(builder.le(numberExpression, tmpLongValue));
+					return Optional.ofNullable(builder.lessThan(numberExpression, tmpLongValue));
+				}
+				if (value.startsWith(">=")) {
+					tmpString = value.substring(2).trim();
+					tmpLongValue = BigInteger.valueOf(Long.valueOf(tmpString));
+					return Optional.ofNullable(
+							builder.greaterThanOrEqualTo(numberExpression, tmpLongValue));
 				}
 				if (value.startsWith(">")) {
 					tmpString = value.substring(1).trim();
 					tmpLongValue = BigInteger.valueOf(Long.valueOf(tmpString));
-					return Optional.ofNullable(builder.ge(numberExpression, tmpLongValue));
+					return Optional.ofNullable(builder.greaterThan(numberExpression, tmpLongValue));
 				}
 			} catch (NumberFormatException ex) {
 				// Logger.getLogger(QueryHelper.class.getName()).log(Level.WARNING,
@@ -584,4 +576,66 @@ public class QueryHelper {
 				|| Objects.equals(BigDecimal.class, clazz);
 	}
 
+	private static FilterMeta exprToFilterMeta(String value) {
+
+		var ret = new FilterMeta();
+
+		String[] groupValues = value.split("\\+\\+");
+
+		ret.setOperator("OR");
+		ret.setChildrens(new ArrayList<>());
+
+		for (String groupValue : groupValues) {
+			var group = new FilterMeta();
+			group.setOperator("OR");
+			group.setChildrens(new ArrayList<>());
+			ret.getChildrens().add(group);
+
+			String[] orValues = groupValue.split("\\|\\|");
+
+			for (String orValue : orValues) {
+				var or = new FilterMeta();
+				or.setChildrens(new ArrayList<>());
+				or.setOperator("AND");
+				group.getChildrens().add(or);
+
+				String[] andValues = orValue.split("\\&\\&");
+
+				for (String andValue : andValues) {
+					var and = new FilterMeta();
+					and.setChildrens(new ArrayList<>());
+					and.setValue(andValue);
+					or.getChildrens().add(and);
+				}
+			}
+		}
+
+		reduceFilterMeta(ret);
+
+		return ret;
+	}
+
+	private static void reduceFilterMeta(FilterMeta filterMeta) {
+
+		if (filterMeta.getChildrens() != null
+				&& !filterMeta.getChildrens().isEmpty()) {
+			if (!Optional.ofNullable(filterMeta.getOperator()).orElse("").equalsIgnoreCase("NOT")
+					&& filterMeta.getChildrens().size() == 1) {
+
+				var child = filterMeta.getChildrens().get(0);
+
+				filterMeta.setFieldName(child.getFieldName());
+				filterMeta.setValue(child.getValue());
+				filterMeta.setOperator(child.getOperator());
+				filterMeta.setChildrens(child.getChildrens());
+
+				reduceFilterMeta(filterMeta);
+			}
+
+			filterMeta.getChildrens().forEach(fm -> reduceFilterMeta(fm));
+		}
+
+
+	}
 }
+

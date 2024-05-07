@@ -6,7 +6,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class EnvironmentUtils {
-    public static void setAppHome(Class<?> mainClass) {
+	public static void setAppHome(Class<?> mainClass) {
 		CodeSource codeSource = mainClass.getProtectionDomain().getCodeSource();
 
 		String jarDir = "";
@@ -17,6 +17,8 @@ public class EnvironmentUtils {
 			File jarFolder = null;
 			if (path.startsWith("file:/") && path.contains("!")) {
 				jarFile = new File(path.substring(6, path.indexOf("!") - 1));
+			} else if (path.startsWith("nested:/") && path.contains("!")) {
+				jarFile = new File(path.substring(8, path.indexOf("!") - 1));
 			} else {
 				jarFile = new File(codeSource.getLocation().toURI().getPath());
 			}
@@ -31,7 +33,10 @@ public class EnvironmentUtils {
 			jarDir = jarFolder.getPath();
 		} catch (Exception ex) {
 			Logger.getLogger(mainClass.getName()).log(Level.SEVERE,
-					"Error buscando jar path " + codeSource.getLocation().toString(), ex);
+					"Error buscando jar "
+							+ "path: '" + codeSource.getLocation().getPath()
+							+ "' toString: '" + codeSource.getLocation().toString() + "'",
+					ex);
 		}
 
 		if (!System.getProperty("os.name").toLowerCase().startsWith("windows")) {

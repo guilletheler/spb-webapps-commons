@@ -42,13 +42,13 @@ public class Utils implements Serializable {
 
 	public static final SimpleDateFormat SDF_SLASH_DMYY = new SimpleDateFormat("dd/MM/yyyy");
 
-	public static final SimpleDateFormat SDF_SLASH_DMYHM = new SimpleDateFormat("dd/MM/yy HH:mm");;
+	public static final SimpleDateFormat SDF_SLASH_DMYHM = new SimpleDateFormat("dd/MM/yy HH:mm");
 
 	public static final SimpleDateFormat SDF_SLASH_DMYHMS =
-			new SimpleDateFormat("dd/MM/yy HH:mm:ss");;
+			new SimpleDateFormat("dd/MM/yy HH:mm:ss");
 
 	public static final SimpleDateFormat SDF_SLASH_DMYYHM =
-			new SimpleDateFormat("dd/MM/yyyy HH:mm");;
+			new SimpleDateFormat("dd/MM/yyyy HH:mm");
 
 	public static final SimpleDateFormat SDF_SLASH_DMYYHMS =
 			new SimpleDateFormat("dd/MM/yyyy HH:mm:ss");
