@@ -45,6 +45,8 @@ public class EnvironmentUtils {
 			}
 		}
 
+		Logger.getLogger(EnvironmentUtils.class.getName()).log(Level.INFO,
+				"Seteando app.home en '" + jarDir + "'");
 		System.setProperty("app.home", jarDir);
 
 	}

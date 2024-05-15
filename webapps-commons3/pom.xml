@@ -20,6 +20,8 @@
 		<jakarta.persistence.api.version>3.1.0</jakarta.persistence.api.version>
 		<lombok.version>1.18.30</lombok.version>
 		<jackson.version>2.16.1</jackson.version>
+		<jackcessVersion>4.0.6</jackcessVersion>
+		<jackcessEncryptVersion>4.0.2</jackcessEncryptVersion>
 	</properties>
 
 	<dependencyManagement>
@@ -108,11 +110,16 @@
 		</dependency>
 
 
-		<!-- JSCH -->
+		<!-- ACCESS -->
 		<dependency>
-			<groupId>com.jcraft</groupId>
-			<artifactId>jsch</artifactId>
-			<version>0.1.55</version>
+			<groupId>com.healthmarketscience.jackcess</groupId>
+			<artifactId>jackcess</artifactId>
+			<version>${jackcessVersion}</version>
+		</dependency>
+		<dependency>
+			<groupId>com.healthmarketscience.jackcess</groupId>
+			<artifactId>jackcess-encrypt</artifactId>
+			<version>${jackcessEncryptVersion}</version>
 		</dependency>
 	</dependencies>
 

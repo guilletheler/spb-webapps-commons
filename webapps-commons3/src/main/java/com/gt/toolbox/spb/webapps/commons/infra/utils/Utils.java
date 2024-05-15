@@ -202,7 +202,7 @@ public class Utils implements Serializable {
 				.append(ex.getClass().getSimpleName())
 				.append("\n")
 				.append(ex.getMessage());
-		if (!ex.getMessage().equals(ex.getLocalizedMessage())) {
+		if (!Objects.equals(ex.getMessage(), ex.getLocalizedMessage())) {
 			sb.append("\n")
 					.append(ex.getLocalizedMessage());
 		}
