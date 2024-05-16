@@ -2,16 +2,11 @@ package com.gt.toolbox.spb.webapps.payload;
 
 import java.io.Serializable;
 import java.util.List;
+import lombok.Getter;
+import lombok.Setter;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-
-@Data
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
+@Getter
+@Setter
 public class FilterMeta implements Serializable {
 
     public final static long serialVersionUID = 1L;
@@ -20,9 +15,8 @@ public class FilterMeta implements Serializable {
     private String value;
 
     /**
-     * en caso que childrens no sea null o de largo 0, los operadores pueden ser
-     * AND, OR, NOT
-     * caso contrario es Operador SQL, por defecto like para string, = para el resto
+     * en caso que childrens no sea null o de largo 0, los operadores pueden ser AND, OR, NOT caso
+     * contrario es Operador SQL, por defecto like para string, = para el resto
      */
     private String operator;
 

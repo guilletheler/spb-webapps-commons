@@ -8,7 +8,6 @@ import com.gt.toolbox.spb.webapps.payload.FilterMeta;
 import com.gt.toolbox.spb.webapps.payload.PageRequest;
 import com.gt.toolbox.spb.webapps.payload.SortMeta;
 import com.gt.toolbox.spb.webapps.payload.SortMeta.SortDirection;
-
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.CriteriaQuery;
 import jakarta.persistence.criteria.Predicate;

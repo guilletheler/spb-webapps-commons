@@ -1,19 +1,13 @@
 package com.gt.toolbox.spb.webapps.payload;
 
 import java.io.Serializable;
-
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.Getter;
+import lombok.Setter;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
+@Getter
+@Setter
 public class SortMeta implements Serializable {
 
     public final static long serialVersionUID = 1L;
@@ -23,10 +17,8 @@ public class SortMeta implements Serializable {
 
     public enum SortDirection {
         @JsonProperty("asc")
-        ASC,
-        @JsonProperty("desc")
-        DESC,
-        @JsonProperty("none")
+        ASC, @JsonProperty("desc")
+        DESC, @JsonProperty("none")
         NONE;
 
         @JsonCreator

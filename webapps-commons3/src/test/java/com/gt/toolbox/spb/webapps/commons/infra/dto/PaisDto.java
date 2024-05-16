@@ -2,14 +2,16 @@ package com.gt.toolbox.spb.webapps.commons.infra.dto;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.ToString;
 
 @JsonInclude(Include.NON_EMPTY)
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
+@Getter
+@Setter
+@EqualsAndHashCode
+@ToString
 public class PaisDto {
 
     private Integer id;
