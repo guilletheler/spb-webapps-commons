@@ -108,19 +108,6 @@
 			<artifactId>junit-jupiter</artifactId>
 			<scope>test</scope>
 		</dependency>
-
-
-		<!-- ACCESS -->
-		<dependency>
-			<groupId>com.healthmarketscience.jackcess</groupId>
-			<artifactId>jackcess</artifactId>
-			<version>${jackcessVersion}</version>
-		</dependency>
-		<dependency>
-			<groupId>com.healthmarketscience.jackcess</groupId>
-			<artifactId>jackcess-encrypt</artifactId>
-			<version>${jackcessEncryptVersion}</version>
-		</dependency>
 	</dependencies>
 
 	<build>

@@ -4,6 +4,7 @@ import java.io.Serializable;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.text.SimpleDateFormat;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
@@ -14,7 +15,6 @@ import java.util.Objects;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
-
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContext;
@@ -72,6 +72,61 @@ public class Utils implements Serializable {
 	public static final SimpleDateFormat[] DATE_FORMATS =
 			new SimpleDateFormat[] {SDF_SLASH_DMY, SDF_SLASH_DMYY,
 					SDF_SLASH_DMYHM, SDF_SLASH_DMYYHM, SDF_SLASH_DMYHMS, SDF_SLASH_DMYYHMS};
+
+
+
+	public static final DateTimeFormatter DTF_ISO_HMS = DateTimeFormatter.ofPattern("HHmmss");
+
+	public static final DateTimeFormatter DTF_ISO_HM = DateTimeFormatter.ofPattern("HHmm");
+
+	public static final DateTimeFormatter DTF_HMS = DateTimeFormatter.ofPattern("HH:mm:ss");
+
+	public static final DateTimeFormatter DTF_HM = DateTimeFormatter.ofPattern("HH:mm");
+
+	public static final DateTimeFormatter DTF_SLASH_DM = DateTimeFormatter.ofPattern("dd/MM");
+
+	public static final DateTimeFormatter DTF_SLASH_DMY = DateTimeFormatter.ofPattern("dd/MM/yy");
+
+	public static final DateTimeFormatter DTF_SLASH_DMYY =
+			DateTimeFormatter.ofPattern("dd/MM/yyyy");
+
+	public static final DateTimeFormatter DTF_SLASH_DMYHM =
+			DateTimeFormatter.ofPattern("dd/MM/yy HH:mm");
+
+	public static final DateTimeFormatter DTF_SLASH_DMYHMS =
+			DateTimeFormatter.ofPattern("dd/MM/yy HH:mm:ss");
+
+	public static final DateTimeFormatter DTF_SLASH_DMYYHM =
+			DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+
+	public static final DateTimeFormatter DTF_SLASH_DMYYHMS =
+			DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
+
+	public static final DateTimeFormatter DTF_ISO_YYMD = DateTimeFormatter.ofPattern("yyyyMMdd");
+
+	public static final DateTimeFormatter DTF_ISO_YYMDHMS =
+			DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
+
+	public static final DateTimeFormatter DTF_DMYY = DateTimeFormatter.ofPattern("ddMMyyyy");
+
+	public static final DateTimeFormatter DTF_DMY = DateTimeFormatter.ofPattern("ddMMyy");
+
+	public static final DateTimeFormatter DTF_MD = DateTimeFormatter.ofPattern("MMdd");
+
+	public static final DateTimeFormatter DTF_SLASH_ISO_YYMDHM =
+			DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm");
+
+	public static final DateTimeFormatter DTF_BAR_ISO_YYMDHMS =
+			DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+
+	public static final DateTimeFormatter[] LOCAL_DATE_FORMATS =
+			new DateTimeFormatter[] {DTF_SLASH_DMY, DTF_SLASH_DMYY};
+
+	public static final DateTimeFormatter[] LOCAL_DATE_TIME_FORMATS =
+			new DateTimeFormatter[] {DTF_SLASH_DMYHM, DTF_SLASH_DMYHMS, DTF_SLASH_DMYYHM,
+					DTF_SLASH_DMYYHMS};
+
+
 
 	public static final DecimalFormat DF_2E = new DecimalFormat("00");
 

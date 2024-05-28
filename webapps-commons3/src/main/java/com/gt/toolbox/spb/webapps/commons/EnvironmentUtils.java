@@ -2,7 +2,9 @@ package com.gt.toolbox.spb.webapps.commons;
 
 import java.io.File;
 import java.security.CodeSource;
-import java.util.Date;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -39,9 +41,10 @@ public class EnvironmentUtils {
 
 	}
 
-	public static Date getCompiledDate(Class<?> mainClass) {
+	public static LocalDateTime getCompiledDate(Class<?> mainClass) {
 		var file = getJarFile(mainClass);
-		return new Date(file.lastModified());
+		return Instant.ofEpochMilli(file.lastModified()).atZone(ZoneId.systemDefault())
+				.toLocalDateTime();
 	}
 
 	public static File getJarFile(Class<?> mainClass) {
