@@ -62,8 +62,6 @@ public class DatePredicateBuilder {
 
 
         if (value != null && !value.isBlank()) {
-            Logger.getLogger(DatePredicateBuilder.class.getName()).log(Level.INFO, path.toString());
-
             Expression<LocalDateTime> dateExpression = path.as(LocalDateTime.class);
 
             LocalDateTime tmpDateValue;
@@ -105,9 +103,6 @@ public class DatePredicateBuilder {
                     Expression<String> dateStringExpr =
                             builder.function("to_char", String.class,
                                     path, builder.literal("DD/MM/YYYY HH24:MI:SS"));
-
-                    Logger.getLogger(DatePredicateBuilder.class.getName()).log(Level.INFO,
-                            "date as string " + tmpString);
 
                     predicate = builder.like(dateStringExpr,
                             "%" + value.toUpperCase() + "%");
