@@ -11,7 +11,8 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.Objects;
-import java.util.Optional;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import org.apache.commons.lang3.StringUtils;
 import com.gt.toolbox.spb.webapps.commons.infra.utils.Utils;
 import jakarta.persistence.criteria.CriteriaBuilder;
@@ -31,16 +32,16 @@ public class DatePredicateBuilder {
             var fromTo = new Predicate[] {null, null};
             if (value.startsWith("-")) {
                 fromTo[1] =
-                        buildSinglePredicate(builder, path, "<=" + value.substring(1)).orElse(null);
+                        buildSinglePredicate(builder, path, "<=" + value.substring(1));
             } else if (value.endsWith("-")) {
                 fromTo[0] =
-                        buildSinglePredicate(builder, path, ">=" + value.substring(1)).orElse(null);
+                        buildSinglePredicate(builder, path, ">=" + value.substring(1));
             } else if (value.contains("-")) {
                 var strFromTo = value.split("-");
                 fromTo[0] =
-                        buildSinglePredicate(builder, path, ">=" + strFromTo[0]).orElse(null);
+                        buildSinglePredicate(builder, path, ">=" + strFromTo[0]);
                 fromTo[1] =
-                        buildSinglePredicate(builder, path, "<=" + strFromTo[1]).orElse(null);
+                        buildSinglePredicate(builder, path, "<=" + strFromTo[1]);
             }
 
             if (fromTo[0] != null && fromTo[1] != null) {
@@ -50,16 +51,18 @@ public class DatePredicateBuilder {
             } else if (fromTo[1] != null) {
                 predicate = fromTo[1];
             } else {
-                predicate = buildSinglePredicate(builder, path, value).orElse(null);
+                predicate = buildSinglePredicate(builder, path, value);
             }
         }
         return predicate;
     }
 
-    public static Optional<Predicate> buildSinglePredicate(CriteriaBuilder builder, Path<?> path,
+    public static Predicate buildSinglePredicate(CriteriaBuilder builder, Path<?> path,
             String value) {
 
+
         if (value != null && !value.isBlank()) {
+            Logger.getLogger(DatePredicateBuilder.class.getName()).log(Level.INFO, path.toString());
 
             Expression<LocalDateTime> dateExpression = path.as(LocalDateTime.class);
 
@@ -68,7 +71,7 @@ public class DatePredicateBuilder {
 
             try {
                 Predicate predicate = null;
-                if (value.startsWith("0") || value.startsWith("=")) {
+                if (value.startsWith("=")) {
                     tmpString = value.substring(1).trim().replace(",", ".");
                     tmpDateValue = parseLocalDateTime(tmpString);
                     if (tmpDateValue != null) {
@@ -99,24 +102,28 @@ public class DatePredicateBuilder {
                         predicate = builder.greaterThan(dateExpression, tmpDateValue);
                     }
                 } else {
-                    tmpString = value.trim().replace(",", ".");
-                    tmpDateValue = parseLocalDateTime(tmpString);
-                    if (tmpDateValue != null) {
-                        predicate = builder.equal(dateExpression, tmpDateValue);
-                    }
+                    Expression<String> dateStringExpr =
+                            builder.function("to_char", String.class,
+                                    path, builder.literal("DD/MM/YYYY HH24:MI:SS"));
+
+                    Logger.getLogger(DatePredicateBuilder.class.getName()).log(Level.INFO,
+                            "date as string " + tmpString);
+
+                    predicate = builder.like(dateStringExpr,
+                            "%" + value.toUpperCase() + "%");
                 }
 
                 // Logger.getLogger(DatePredicateBuilder.class.getName()).log(Level.INFO, tmpString
                 // + " -> " +
                 // Optional.ofNullable(tmpDateValue).map(d -> d.toString()).orElse(""));
 
-                return Optional.ofNullable(predicate);
+                return predicate;
             } catch (NumberFormatException ex) {
-
+                Logger.getLogger(DatePredicateBuilder.class.getName()).log(Level.INFO, "", ex);
             }
         }
 
-        return Optional.empty();
+        return null;
     }
 
     public static boolean isDateClass(Class<?> clazz) {

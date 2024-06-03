@@ -55,11 +55,9 @@ public class IntegerPredicateBuilder {
                         predicate = builder.greaterThan(numberExpression, tmpLongValue);
                     }
                 } else {
-                    tmpString = value.substring(1).trim();
-                    tmpLongValue = BigInteger.valueOf(Long.valueOf(tmpString));
-                    if (tmpLongValue != null) {
-                        predicate = builder.equal(numberExpression, tmpLongValue);
-                    }
+                    tmpString = value.trim().replace(".", "");
+                    tmpString = "%" + value.trim() + "%";
+                    predicate = builder.like(path.as(String.class), tmpString);
                 }
 
             } catch (NumberFormatException ex) {

@@ -1,7 +1,7 @@
 package com.gt.toolbox.spb.jpa.service;
 
 import java.lang.reflect.Method;
-//import java.lang.reflect.ParameterizedType;
+// import java.lang.reflect.ParameterizedType;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.text.ParseException;
@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.logging.Level;
@@ -33,6 +34,26 @@ import com.gt.toolbox.spb.webapps.commons.infra.utils.Utils;
 
 public class QueryHelper {
 
+	public static <T> Specification<T> getFilterSpecification(Map<String, String> filter) {
+
+		var filterMeta = MapToFilterMeta(filter);
+
+		return getFilterSpecification(filterMeta);
+	}
+
+	public static FilterMeta MapToFilterMeta(Map<String, String> filter) {
+		var filterMeta = new FilterMeta();
+		filterMeta.setOperator("OR");
+		filter.entrySet().forEach(e -> {
+			if (e.getValue() != null && !e.getValue().isBlank()) {
+				filterMeta.getChildrens()
+						.add(FilterMeta.builder().fieldName(e.getKey()).value(e.getValue())
+								.build());
+			}
+		});
+		return filterMeta;
+	}
+
 	public static <T> Specification<T> getFilterSpecification(FilterMeta filter) {
 
 		return (Root<T> root, CriteriaQuery<?> query, CriteriaBuilder builder) -> {
@@ -42,15 +63,18 @@ public class QueryHelper {
 		};
 	}
 
-	public static <T> Predicate buildPredicate(Root<T> root, CriteriaBuilder builder, FilterMeta filter) {
+	public static <T> Predicate buildPredicate(Root<T> root, CriteriaBuilder builder,
+			FilterMeta filter) {
 		return buildPredicate(root, builder, filter, new ArrayList<>());
 	}
 
-	public static <T> Predicate buildPredicate(Path<?> path, CriteriaBuilder builder, FilterMeta filter) {
+	public static <T> Predicate buildPredicate(Path<?> path, CriteriaBuilder builder,
+			FilterMeta filter) {
 		return buildPredicate(path, builder, filter, new ArrayList<>());
 	}
 
-	private static <T> Predicate buildPredicateAgrupador(Path<?> path, CriteriaBuilder builder, FilterMeta filter,
+	private static <T> Predicate buildPredicateAgrupador(Path<?> path, CriteriaBuilder builder,
+			FilterMeta filter,
 			List<String> pathAgregados) {
 
 		Predicate ret = null;
@@ -79,7 +103,8 @@ public class QueryHelper {
 		return ret;
 	}
 
-	private static <T> Predicate buildPredicate(Path<?> path, CriteriaBuilder builder, FilterMeta filter,
+	private static <T> Predicate buildPredicate(Path<?> path, CriteriaBuilder builder,
+			FilterMeta filter,
 			List<String> pathAgregados) {
 
 		Predicate ret = null;
@@ -157,7 +182,8 @@ public class QueryHelper {
 			}
 		}
 
-		if (ret != null && filter.getOperator() != null && filter.getOperator().equalsIgnoreCase("NOT")) {
+		if (ret != null && filter.getOperator() != null
+				&& filter.getOperator().equalsIgnoreCase("NOT")) {
 			ret = ret.not();
 		}
 
@@ -201,19 +227,22 @@ public class QueryHelper {
 		return m;
 	}
 
-	public static <T> Predicate buildPredicate(Path<?> path, CriteriaBuilder builder, String value) {
+	public static <T> Predicate buildPredicate(Path<?> path, CriteriaBuilder builder,
+			String value) {
 
 		Predicate ret = buildCollectionPredicate(builder, path, value)
 				.orElseGet(() -> buildIntegerPredicate(builder, path, value)
 						.orElseGet(() -> buildDecimalPredicate(builder, path, value)
 								.orElseGet(() -> buildBooleanPredicate(builder, path, value)
 										.orElseGet(() -> buildDatePredicate(builder, path, value)
-												.orElseGet(() -> buildDefaultPredicate(builder, path, value))))));
+												.orElseGet(() -> buildDefaultPredicate(builder,
+														path, value))))));
 
 		return ret;
 	}
 
-	public static Predicate buildDefaultPredicate(CriteriaBuilder builder, Path<?> path, String value) {
+	public static Predicate buildDefaultPredicate(CriteriaBuilder builder, Path<?> path,
+			String value) {
 
 		Predicate ret = null;
 
@@ -236,7 +265,8 @@ public class QueryHelper {
 					// Logger.getLogger(QueryHelper.class.getName()).info("agregando and para " +
 					// andValue);
 					Predicate andPredicate;
-					if (andValue.length() > 1 && andValue.startsWith("'") && andValue.endsWith("'")) {
+					if (andValue.length() > 1 && andValue.startsWith("'")
+							&& andValue.endsWith("'")) {
 						andValue = andValue.substring(1, andValue.length() - 1);
 
 						andPredicate = builder.like(path.as(String.class),
@@ -282,7 +312,8 @@ public class QueryHelper {
 	 * @param value
 	 * @return
 	 */
-	public static Optional<Predicate> buildCollectionPredicate(CriteriaBuilder builder, Path<?> path, String value) {
+	public static Optional<Predicate> buildCollectionPredicate(CriteriaBuilder builder,
+			Path<?> path, String value) {
 
 		if (Collection.class.isAssignableFrom(path.getJavaType())) {
 
@@ -334,7 +365,8 @@ public class QueryHelper {
 				Date fechaFin = QueryHelper.parseDate(value.trim().substring(1).trim());
 				return Optional.ofNullable(builder.lessThanOrEqualTo(dateExpression, fechaFin));
 			} else if (value.trim().endsWith("-")) {
-				Date fechaIni = QueryHelper.parseDate(value.trim().substring(0, value.trim().length() - 1).trim());
+				Date fechaIni = QueryHelper
+						.parseDate(value.trim().substring(0, value.trim().length() - 1).trim());
 				return Optional.ofNullable(builder.greaterThanOrEqualTo(dateExpression, fechaIni));
 			} else if (value.trim().contains("-")) {
 				// Supongo un between
@@ -342,7 +374,7 @@ public class QueryHelper {
 				String[] fechas = value.trim().split("-");
 
 				if (fechas.length < 2) {
-					fechas = new String[] { fechas[0], "01/01/2100" };
+					fechas = new String[] {fechas[0], "01/01/2100"};
 				}
 
 				Date fechaIni = QueryHelper.parseDate(fechas[0].trim());
@@ -360,7 +392,8 @@ public class QueryHelper {
 
 			} else {
 
-				return Optional.ofNullable(builder.equal(dateExpression, QueryHelper.parseDate(value)));
+				return Optional
+						.ofNullable(builder.equal(dateExpression, QueryHelper.parseDate(value)));
 
 			}
 		}
@@ -377,14 +410,16 @@ public class QueryHelper {
 					|| value.trim().equalsIgnoreCase("true");
 
 			if (valor) {
-				return Optional.ofNullable(builder.equal(builder.coalesce(path, Boolean.FALSE), Boolean.TRUE));
+				return Optional.ofNullable(
+						builder.equal(builder.coalesce(path, Boolean.FALSE), Boolean.TRUE));
 			}
 
 			valor = value.trim().equalsIgnoreCase("no")
 					|| value.trim().equalsIgnoreCase("false");
 
 			if (valor) {
-				return Optional.ofNullable(builder.equal(builder.coalesce(path, Boolean.FALSE), Boolean.FALSE));
+				return Optional.ofNullable(
+						builder.equal(builder.coalesce(path, Boolean.FALSE), Boolean.FALSE));
 			}
 
 		}

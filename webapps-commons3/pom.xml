@@ -20,8 +20,6 @@
 		<jakarta.persistence.api.version>3.1.0</jakarta.persistence.api.version>
 		<lombok.version>1.18.30</lombok.version>
 		<jackson.version>2.16.1</jackson.version>
-		<jackcessVersion>4.0.6</jackcessVersion>
-		<jackcessEncryptVersion>4.0.2</jackcessEncryptVersion>
 	</properties>
 
 	<dependencyManagement>

@@ -2,6 +2,9 @@ package com.gt.toolbox.spb.webapps.commons.infra.service.predicate.builders;
 
 import java.math.BigDecimal;
 import java.util.Objects;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import org.apache.commons.lang3.StringUtils;
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.Expression;
 import jakarta.persistence.criteria.Path;
@@ -55,10 +58,19 @@ public class DecimalPredicateBuilder {
                         predicate = builder.greaterThan(numberExpression, tmpDoubleValue);
                     }
                 } else {
+                    if (value.contains(".") && value.contains(",")
+                            || StringUtils.countMatches(value, ".") > 1) {
+                        tmpString = value.trim().replace(".", "");
+                    }
                     tmpString = value.trim().replace(",", ".");
-                    tmpDoubleValue = BigDecimal.valueOf(Double.valueOf(tmpString));
-                    if (tmpDoubleValue != null) {
-                        predicate = builder.equal(numberExpression, tmpDoubleValue);
+                    if (tmpString.contains(".")) {
+                        tmpDoubleValue = BigDecimal.valueOf(Double.valueOf(tmpString));
+                        if (tmpDoubleValue != null) {
+                            predicate = builder.equal(numberExpression, tmpDoubleValue);
+                        }
+                    } else {
+                        tmpString = "%" + value.trim() + "%";
+                        predicate = builder.like(path.as(String.class), tmpString);
                     }
                 }
 
