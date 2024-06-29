@@ -39,7 +39,7 @@ public class LazySorter<T> implements Comparator<T> {
 
 			return value;
 		} catch (Exception e) {
-			Logger.getLogger(getClass().getName()).log(Level.SEVERE, "Error al realizar comparación", e);
+			Logger.getLogger(getClass().getName()).log(Level.SEVERE, "Error al aplicar filtro", e);
 
 			return 0;
 		}

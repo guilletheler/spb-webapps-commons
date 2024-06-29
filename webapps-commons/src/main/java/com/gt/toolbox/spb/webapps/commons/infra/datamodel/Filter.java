@@ -1,22 +1,29 @@
 package com.gt.toolbox.spb.webapps.commons.infra.datamodel;
 
-
 import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
+
+import lombok.Getter;
 
 /**
  * Created by rmpestano on 9/7/14.
  * class which holds database pagination metadata
  */
 public class Filter<T extends Serializable> {
-    private T entity;
-    private int first;
-    private int pageSize;
-    private String sortField;
-    private SortOrder sortOrder;
-    private Map<String, Object> params = new HashMap<String, Object>();
 
+    @Getter
+    private T entity;
+    @Getter
+    private int first;
+    @Getter
+    private int pageSize;
+    @Getter
+    private String sortField;
+    @Getter
+    private SortOrder sortOrder;
+    @Getter
+    private Map<String, Object> params = new HashMap<String, Object>();
 
     public Filter() {
     }
@@ -30,17 +37,9 @@ public class Filter<T extends Serializable> {
         return this;
     }
 
-    public int getFirst() {
-        return first;
-    }
-
     public Filter<T> setPageSize(int pageSize) {
         this.pageSize = pageSize;
         return this;
-    }
-
-    public int getPageSize() {
-        return pageSize;
     }
 
     public Filter<T> setSortField(String sortField) {
@@ -48,30 +47,14 @@ public class Filter<T extends Serializable> {
         return this;
     }
 
-    public String getSortField() {
-        return sortField;
-    }
-
     public Filter<T> setSortOrder(SortOrder sortOrder) {
         this.sortOrder = sortOrder;
         return this;
     }
 
-    public SortOrder getSortOrder() {
-        return sortOrder;
-    }
-
     public Filter<T> setParams(Map<String, Object> params) {
         this.params = params;
         return this;
-    }
-
-    public Map<String, Object> getParams() {
-        return params;
-    }
-
-    public T getEntity() {
-        return entity;
     }
 
     public Filter<T> setEntity(T entity) {
