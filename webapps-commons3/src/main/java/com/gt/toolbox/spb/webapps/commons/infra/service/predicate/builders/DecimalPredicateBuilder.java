@@ -2,8 +2,6 @@ package com.gt.toolbox.spb.webapps.commons.infra.service.predicate.builders;
 
 import java.math.BigDecimal;
 import java.util.Objects;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import org.apache.commons.lang3.StringUtils;
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.Expression;

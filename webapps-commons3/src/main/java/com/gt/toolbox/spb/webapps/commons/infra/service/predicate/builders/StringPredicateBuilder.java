@@ -1,7 +1,6 @@
 package com.gt.toolbox.spb.webapps.commons.infra.service.predicate.builders;
 
 import jakarta.persistence.criteria.CriteriaBuilder;
-import jakarta.persistence.criteria.Expression;
 import jakarta.persistence.criteria.Path;
 import jakarta.persistence.criteria.Predicate;
 
