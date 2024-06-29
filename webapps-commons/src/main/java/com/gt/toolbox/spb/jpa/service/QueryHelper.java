@@ -36,12 +36,12 @@ public class QueryHelper {
 
 	public static <T> Specification<T> getFilterSpecification(Map<String, String> filter) {
 
-		var filterMeta = MapToFilterMeta(filter);
+		var filterMeta = mapToFilterMeta(filter);
 
 		return getFilterSpecification(filterMeta);
 	}
 
-	public static FilterMeta MapToFilterMeta(Map<String, String> filter) {
+	public static FilterMeta mapToFilterMeta(Map<String, String> filter) {
 		var filterMeta = new FilterMeta();
 		filterMeta.setOperator("OR");
 		filter.entrySet().forEach(e -> {
