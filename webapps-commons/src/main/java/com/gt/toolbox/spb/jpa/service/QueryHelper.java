@@ -43,14 +43,17 @@ public class QueryHelper {
 
 	public static FilterMeta mapToFilterMeta(Map<String, String> filter) {
 		var filterMeta = new FilterMeta();
-		filterMeta.setOperator("OR");
-		filter.entrySet().forEach(e -> {
-			if (e.getValue() != null && !e.getValue().isBlank()) {
-				filterMeta.getChildrens()
-						.add(FilterMeta.builder().fieldName(e.getKey()).value(e.getValue())
-								.build());
-			}
-		});
+		if (filter != null) {
+			filterMeta.setChildrens(new ArrayList<>());
+			filterMeta.setOperator("OR");
+			filter.entrySet().forEach(e -> {
+				if (e.getValue() != null && !e.getValue().isBlank()) {
+					filterMeta.getChildrens()
+							.add(FilterMeta.builder().fieldName(e.getKey()).value(e.getValue())
+									.build());
+				}
+			});
+		}
 		return filterMeta;
 	}
 
