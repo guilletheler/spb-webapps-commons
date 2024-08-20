@@ -1,7 +1,21 @@
 package com.gt.toolbox.spb.webapps.commons.infra.dto;
 
+import java.util.Optional;
+
 public interface IDtoConverter<E, D> {
-    D toDto(E entity, EntityDetailLevel level);
+
+    default D toDto(E entity, EntityDetailLevel level) {
+        return Optional.ofNullable(entity)
+                .map(e -> switch (Optional.ofNullable(level).orElse(EntityDetailLevel.COMPLETE)) {
+                    case NEVER -> null;
+                    case KEY -> forKey(e);
+                    case SELECT -> forSelect(e);
+                    case LIST -> forList(e);
+                    case COMPLETE -> forEdit(e);
+                    default -> throw new IllegalArgumentException("Level no soportado");
+                })
+                .orElse(null);
+    }
 
     // Solo la clave
     D forKey(E entity);
@@ -17,7 +31,8 @@ public interface IDtoConverter<E, D> {
 
     E toNewEntity(D dto);
 
-    void toEntity(E entity, D dto);
+    E toEntity(E entity, D dto);
 
     boolean sameKey(E entity, D dto);
+
 }
