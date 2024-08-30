@@ -42,13 +42,6 @@ public class PageRequestHelper {
         }
         Sort sorts = null;
 
-        if (pageRequest.getSortField() != null) {
-            sorts = Sort.by(pageRequest.getSortField());
-            if (pageRequest.getSortDirection() == SortDirection.DESC) {
-                sorts = sorts.descending();
-            }
-        }
-
         if (pageRequest.getMultiSortMeta() != null) {
 
             Sort tmpSort = null;

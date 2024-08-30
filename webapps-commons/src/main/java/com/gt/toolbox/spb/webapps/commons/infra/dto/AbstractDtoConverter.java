@@ -2,15 +2,12 @@ package com.gt.toolbox.spb.webapps.commons.infra.dto;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.logging.Level;
 import org.apache.commons.lang3.StringUtils;
-import com.fasterxml.jackson.annotation.JsonView;
 import lombok.Getter;
 import lombok.extern.java.Log;
 
@@ -36,31 +33,29 @@ public abstract class AbstractDtoConverter<E, D> implements IDtoConverter<E, D> 
     @Override
     public boolean sameKey(E entity, D dto) {
 
-        if (keyMethods == null) {
-            if (includeProperties.get(EntityDetailLevel.KEY) == null) {
-                includeProperties.put(EntityDetailLevel.KEY,
-                        discoverProperties(dtoClass, EntityDetailLevel.KEY));
-            }
+        var ret = false;
 
-            keyMethods = discoverKeyMethods(entityClass, dtoClass,
-                    includeProperties.get(EntityDetailLevel.KEY));
-        }
-
-        boolean ret = true;
-
-        for (var ke : keyMethods.entrySet()) {
+        if (entity != null && dto != null) {
             try {
-                var entityKeyVal = keyMethods.get(ke.getKey())[0].invoke(entity);
-                var dtoKeyVal = keyMethods.get(ke.getKey())[0].invoke(dto);
+                var eMethod = entity.getClass().getMethod("getCodigo");
+                var dtoMethod = dto.getClass().getMethod("getCodigo");
 
-                ret = ret && Objects.equals(entityKeyVal, dtoKeyVal);
+                if (eMethod != null && dtoMethod != null) {
+                    ret = Objects.equals(eMethod.invoke(entity), dtoMethod.invoke(dto));
+                } else {
+                    // Si no es con código pruebo con id
+                    eMethod = entity.getClass().getMethod("getId");
+                    dtoMethod = dto.getClass().getMethod("getId");
 
-            } catch (IllegalAccessException | IllegalArgumentException
-                    | InvocationTargetException e) {
-                log.log(Level.SEVERE, "Error al obtener valor de key", e);
-                ret = false;
-                break;
+                    if (eMethod != null && dtoMethod != null) {
+                        ret = Objects.equals(eMethod.invoke(entity), dtoMethod.invoke(dto));
+                    }
+                }
+            } catch (NoSuchMethodException | SecurityException | IllegalAccessException
+                    | IllegalArgumentException | InvocationTargetException e) {
+                // No se pueden comparar
             }
+
         }
 
         return ret;
@@ -90,32 +85,4 @@ public abstract class AbstractDtoConverter<E, D> implements IDtoConverter<E, D> 
 
     }
 
-    protected static List<String> discoverProperties(Class<?> clazz, EntityDetailLevel level) {
-        List<String> keyProperties = new ArrayList<>();
-        for (var f : clazz.getDeclaredFields()) {
-            var jsonViewAnnotation = f.getAnnotation(JsonView.class);
-            if (jsonViewAnnotation != null) {
-                var jsonViewAnnotations = Arrays.asList(jsonViewAnnotation.value());
-
-                if (jsonViewAnnotations.stream().anyMatch(ejv -> EntityDetailLevel.fromJsonView(ejv)
-                        .stream().anyMatch(l -> l == level))) {
-                    keyProperties.add(f.getName());
-                }
-
-            }
-        }
-
-        return keyProperties;
-    }
-
-    public void discoverDtoIncludeProperties() {
-        this.includeProperties.put(EntityDetailLevel.KEY,
-                discoverProperties(dtoClass, EntityDetailLevel.KEY));
-        this.includeProperties.put(EntityDetailLevel.SELECT,
-                discoverProperties(dtoClass, EntityDetailLevel.SELECT));
-        this.includeProperties.put(EntityDetailLevel.LIST,
-                discoverProperties(dtoClass, EntityDetailLevel.LIST));
-        this.includeProperties.put(EntityDetailLevel.COMPLETE,
-                discoverProperties(dtoClass, EntityDetailLevel.COMPLETE));
-    }
 }

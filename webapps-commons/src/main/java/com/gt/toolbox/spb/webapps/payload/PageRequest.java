@@ -26,18 +26,6 @@ public class PageRequest implements Serializable {
     private Integer first;
     private Integer rows;
 
-    /**
-     * Utilizar multiSortMeta
-     */
-    @Deprecated()
-    private String sortField;
-
-    /**
-     * Utilizar multiSortMeta
-     */
-    @Deprecated()
-    private SortMeta.SortDirection sortDirection;
-
     private SortMeta[] multiSortMeta;
 
     private FilterMeta filter;
