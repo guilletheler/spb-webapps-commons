@@ -12,9 +12,9 @@ import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContext;
@@ -24,6 +24,9 @@ import org.springframework.security.core.context.SecurityContextHolder;
  * Created by rmpestano on 07/02/17.
  */
 public class Utils implements Serializable {
+
+	private static final Logger LOG =
+			LoggerFactory.getLogger(Utils.class);
 
 	/**
 	 * 
@@ -280,7 +283,7 @@ public class Utils implements Serializable {
 
 	public static void logError(Class<?> clazz, Exception ex) {
 		String msg = buildErrorMsg(ex);
-		Logger.getLogger(clazz.getName()).log(Level.WARNING, msg);
+		LOG.warn(msg);
 	}
 
 	private static String buildErrorMsg(Throwable ex) {

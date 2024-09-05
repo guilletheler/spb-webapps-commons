@@ -4,9 +4,9 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.jpa.domain.Specification;
 import com.gt.toolbox.spb.webapps.commons.infra.service.predicate.builders.BooleanPredicateBuilder;
 import com.gt.toolbox.spb.webapps.commons.infra.service.predicate.builders.CollectionPredicateBuilder;
@@ -26,6 +26,9 @@ import jakarta.persistence.criteria.Root;
 
 
 public class QueryHelper {
+
+	private static final Logger LOG =
+			LoggerFactory.getLogger(QueryHelper.class);
 
 	public static <T> Specification<T> getFilterSpecification(FilterMeta filter) {
 
@@ -95,12 +98,6 @@ public class QueryHelper {
 
 				String[] splitKey = filter.getFieldName().split("\\.");
 
-				// if (splitKey.length == 1) {
-				// path = path.get(splitKey[0]);
-				// path.alias(splitKey[0].replace(".", "_"));
-				// Logger.getLogger(QueryHelper.class.getName()).log(Level.INFO, "Seteando path
-				// de alias " + path.getAlias());
-				// } else {
 				String curPath = "";
 
 				// Esto no anda con las colecciones
@@ -120,9 +117,6 @@ public class QueryHelper {
 
 							path = agregarJoin(path, pathAgregados, curPath, splitKey[i]);
 						} else {
-							// Logger.getLogger(QueryHelper.class.getName()).log(Level.INFO,
-							// "siguiendo path " + splitKey[i] + " " + m.getName() + " " +
-							// m.getReturnType());
 							path = path.get(splitKey[i]);
 						}
 
@@ -136,9 +130,9 @@ public class QueryHelper {
 							}
 
 						} else {
-							Logger.getLogger(QueryHelper.class.getName()).log(Level.WARNING,
-									"GUARDA QUE NO ES ROOT!! Siguiendo path join a " + curPath + " "
-											+ path.getJavaType());
+							LOG.warn(
+									"GUARDA QUE NO ES ROOT!! Siguiendo path join a {} {}", curPath,
+									path.getJavaType());
 							path = path.get(splitKey[i]);
 
 						}
@@ -168,9 +162,6 @@ public class QueryHelper {
 
 		pathAgregados.add(curPath);
 
-		// Logger.getLogger(QueryHelper.class.getName()).log(Level.INFO,
-		// "Agregando join para " + curPath);
-
 		if (Root.class.isAssignableFrom(path.getClass())) {
 			path = ((Root<?>) path).join(curKey, JoinType.LEFT);
 		} else {
@@ -194,9 +185,8 @@ public class QueryHelper {
 				m = curClass.getMethod(methodName);
 			} catch (NoSuchMethodException | SecurityException ex) {
 				// No hace nada, o no es un método o no puede acceder
-				Logger.getLogger(QueryHelper.class.getName()).log(Level.INFO,
-						"Error al acceder al método " + StringUtils.capitalize(fieldName)
-								+ " de la clase " + curClass);
+				LOG.info("Error al acceder al método {} de la clase {}",
+						StringUtils.capitalize(fieldName), curClass);
 				throw new RuntimeException("Error en los campos de filtro", e);
 			}
 		}

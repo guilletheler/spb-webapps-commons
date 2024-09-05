@@ -11,9 +11,9 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.Objects;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import com.gt.toolbox.spb.webapps.commons.infra.utils.Utils;
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.Expression;
@@ -24,6 +24,9 @@ import jakarta.persistence.criteria.Predicate;
  * Sirve para cualquier valor decimal: BigDecimal, Double, Float
  */
 public class DatePredicateBuilder {
+
+    private static final Logger LOG =
+            LoggerFactory.getLogger(DatePredicateBuilder.class);
 
     public static Predicate buildPredicate(CriteriaBuilder builder, Path<?> path, String value) {
         Predicate predicate = null;
@@ -108,13 +111,9 @@ public class DatePredicateBuilder {
                             "%" + value.toUpperCase() + "%");
                 }
 
-                // Logger.getLogger(DatePredicateBuilder.class.getName()).log(Level.INFO, tmpString
-                // + " -> " +
-                // Optional.ofNullable(tmpDateValue).map(d -> d.toString()).orElse(""));
-
                 return predicate;
             } catch (NumberFormatException ex) {
-                Logger.getLogger(DatePredicateBuilder.class.getName()).log(Level.INFO, "", ex);
+                LOG.warn("Error obteniendo valores numericos de fecha", ex);
             }
         }
 
@@ -136,7 +135,7 @@ public class DatePredicateBuilder {
                 Date ret = sdf.parse(fecha);
                 return ret;
             } catch (ParseException ex) {
-                // Logger.getLogger(QueryBundle.class.getName()).log(Level.SEVERE, null, ex);
+                LOG.debug("No se puede convertir {} a Date", fecha);
             }
         }
 
@@ -149,7 +148,7 @@ public class DatePredicateBuilder {
                 var ret = LocalDate.parse(fecha, sdf);
                 return ret;
             } catch (DateTimeParseException ex) {
-                // Logger.getLogger(QueryBundle.class.getName()).log(Level.SEVERE, null, ex);
+                LOG.debug("No se puede convertir {} a LocalDate", fecha);
             }
         }
 

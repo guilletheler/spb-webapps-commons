@@ -4,7 +4,7 @@ import java.util.Collection;
 import java.util.Optional;
 import org.springframework.data.domain.Page;
 import com.gt.toolbox.spb.webapps.commons.infra.dto.EntityDetailLevel;
-import com.gt.toolbox.spb.webapps.commons.infra.dto.IDtoConverter;
+import com.gt.toolbox.spb.webapps.commons.infra.dto.IDtoMapper;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -27,11 +27,11 @@ public class PageResponse<T> {
         return ret;
     }
 
-    public static <E, T> PageResponse<T> fromPage(Page<E> page, IDtoConverter<E, T> converter) {
+    public static <E, T> PageResponse<T> fromPage(Page<E> page, IDtoMapper<E, T> converter) {
         return fromPage(page, converter, EntityDetailLevel.LIST);
     }
 
-    public static <E, T> PageResponse<T> fromPage(Page<E> page, IDtoConverter<E, T> converter,
+    public static <E, T> PageResponse<T> fromPage(Page<E> page, IDtoMapper<E, T> converter,
             EntityDetailLevel level) {
         var ret = new PageResponse<T>();
         ret.setContent(page.getContent().stream().map(e -> converter.toDto(e, level)).toList());

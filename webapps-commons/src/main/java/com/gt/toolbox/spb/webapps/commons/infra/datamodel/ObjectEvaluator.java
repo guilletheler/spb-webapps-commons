@@ -3,12 +3,14 @@ package com.gt.toolbox.spb.webapps.commons.infra.datamodel;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ObjectEvaluator<T> {
+
+	private static final Logger LOG =
+			LoggerFactory.getLogger(ObjectEvaluator.class);
 
 	private List<Method> methods;
 
@@ -24,9 +26,8 @@ public class ObjectEvaluator<T> {
 			try {
 				method = curClass.getMethod(methodName);
 			} catch (NoSuchMethodException | SecurityException e) {
-				Logger.getLogger(getClass().getName()).log(Level.SEVERE,
-						"No se puede obtener el método " + methodName + " en " + fieldChain + " para "
-								+ clazz.getName());
+				LOG.error("No se puede obtener el método {} en {} para {}", methodName, fieldChain,
+						clazz.getName());
 				break;
 			}
 			methods.add(method);
@@ -46,8 +47,7 @@ public class ObjectEvaluator<T> {
 						break;
 					}
 				} catch (Exception e) {
-					Logger.getLogger(getClass().getName()).log(Level.SEVERE,
-							"Error al evaluar objeto " + e.getMessage());
+					LOG.error("Error al evaluar objeto {}", e.getMessage());
 
 					ret = null;
 					break;

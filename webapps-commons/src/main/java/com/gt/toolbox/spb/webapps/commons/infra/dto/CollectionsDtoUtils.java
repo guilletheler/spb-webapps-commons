@@ -9,12 +9,16 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
-import java.util.logging.Logger;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.repository.CrudRepository;
 import com.gt.toolbox.spb.webapps.commons.infra.model.IWithId;
 
 public class CollectionsDtoUtils {
+
+    private static final Logger LOG =
+            LoggerFactory.getLogger(CollectionsDtoUtils.class);
 
     /**
      * Toma como base la colección base e incorpora o quita la colección toSynch
@@ -72,7 +76,7 @@ public class CollectionsDtoUtils {
      * @throws BackendException
      */
     public static <E, D> Collection<E> synchronize(Collection<E> base, Collection<D> toSynch,
-            IDtoConverter<E, D> converter) {
+            IDtoMapper<E, D> converter) {
 
         List<E> toRemove = findToRemove(base, toSynch, converter);
 
@@ -114,7 +118,7 @@ public class CollectionsDtoUtils {
      */
     public static <ID, E extends IWithId<ID>, D extends IWithId<ID>> Collection<E> synchronize(
             Collection<E> base, Collection<D> toSynch,
-            IDtoConverter<E, D> converter, CrudRepository<E, ID> repo) {
+            IDtoMapper<E, D> converter, CrudRepository<E, ID> repo) {
 
         List<E> toRemove = findEntitiesToRemove(base, toSynch);
 
@@ -136,8 +140,7 @@ public class CollectionsDtoUtils {
                     if (entity != null) {
                         base.add(entity);
                     } else {
-                        Logger.getLogger(CollectionsDtoUtils.class.getName()).warning(
-                                "No se encontró la entidad con id " + dto.getId());
+                        LOG.warn("No se encontró la entidad con id {}", dto.getId());
                     }
                 }
             }
@@ -158,7 +161,7 @@ public class CollectionsDtoUtils {
      * @return
      */
     public static <E, D> List<E> findToRemove(Collection<E> base, Collection<D> toSynch,
-            IDtoConverter<E, D> converter) {
+            IDtoMapper<E, D> converter) {
         List<E> toRemove = new ArrayList<>();
 
         for (E entity : base) {

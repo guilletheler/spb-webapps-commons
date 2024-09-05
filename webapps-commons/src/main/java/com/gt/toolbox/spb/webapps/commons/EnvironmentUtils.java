@@ -5,10 +5,14 @@ import java.security.CodeSource;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class EnvironmentUtils {
+
+	private static final Logger LOG =
+			LoggerFactory.getLogger(EnvironmentUtils.class);
+
 	public static void setAppHome(Class<?> mainClass) {
 
 		String jarDir = "";
@@ -35,8 +39,7 @@ public class EnvironmentUtils {
 			}
 		}
 
-		Logger.getLogger(EnvironmentUtils.class.getName()).log(Level.INFO,
-				"Seteando app.home en '" + jarDir + "'");
+		LOG.info("Seteando app.home en '{}'", jarDir);
 		System.setProperty("app.home", jarDir);
 
 	}
@@ -77,8 +80,7 @@ public class EnvironmentUtils {
 								.getLocation().getPath() + "'");
 			}
 		} catch (Exception ex) {
-			Logger.getLogger(mainClass.getName()).log(Level.SEVERE,
-					"Error buscando jar",
+			LOG.error("Error buscando jar",
 					ex);
 		}
 

@@ -2,8 +2,8 @@ package com.gt.toolbox.spb.webapps.commons.infra.utils;
 
 import java.util.Timer;
 import java.util.concurrent.Callable;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.cache.Cache;
 import org.springframework.lang.NonNull;
 import org.springframework.lang.Nullable;
@@ -11,6 +11,9 @@ import lombok.Getter;
 
 
 public class GtSpringCache<K, V> implements Cache {
+
+    private static final Logger LOG =
+            LoggerFactory.getLogger(GtSpringCache.class);
 
     private final SimpleInMemoryCache<K, V> store;
 
@@ -28,7 +31,6 @@ public class GtSpringCache<K, V> implements Cache {
 
     @Getter
     String name;
-
 
     @SuppressWarnings("null")
     @Override
@@ -67,8 +69,7 @@ public class GtSpringCache<K, V> implements Cache {
                 store.put(kKey, value);
             }
         } catch (Exception e) {
-            Logger.getLogger(getClass().getName()).log(Level.SEVERE,
-                    "error al almacenar valor en cache", e);
+            LOG.error("error al almacenar valor en cache", e);
         }
         return toPut;
     }

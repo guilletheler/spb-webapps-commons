@@ -12,7 +12,7 @@ import lombok.Getter;
 import lombok.extern.java.Log;
 
 @Log
-public abstract class AbstractDtoConverter<E, D> implements IDtoConverter<E, D> {
+public abstract class AbstractDtoMapper<E, D> implements IDtoMapper<E, D> {
 
     Class<E> entityClass;
     Class<D> dtoClass;

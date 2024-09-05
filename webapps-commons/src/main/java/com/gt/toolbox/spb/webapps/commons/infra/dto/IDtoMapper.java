@@ -2,7 +2,7 @@ package com.gt.toolbox.spb.webapps.commons.infra.dto;
 
 import java.util.Optional;
 
-public interface IDtoConverter<E, D> {
+public interface IDtoMapper<E, D> {
 
     default D toDto(E entity, EntityDetailLevel level) {
         return Optional.ofNullable(entity)
