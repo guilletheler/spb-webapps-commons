@@ -10,13 +10,15 @@ public class BooleanPredicateBuilder {
 
     private static Optional<Boolean> parseBoolean(String value) {
         var valor = value.trim().equalsIgnoreCase("si")
-                || value.trim().equalsIgnoreCase("true");
+                || value.trim().equalsIgnoreCase("true")
+                || value.trim().equalsIgnoreCase("verdadero");
         if (valor) {
             return Optional.of(true);
         }
 
         valor = value.trim().equalsIgnoreCase("no")
-                || value.trim().equalsIgnoreCase("false");
+                || value.trim().equalsIgnoreCase("false")
+                || value.trim().equalsIgnoreCase("falso");
 
         if (valor) {
             return Optional.of(false);

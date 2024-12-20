@@ -260,22 +260,24 @@ public class QueryHelper {
 			String value) {
 
 		Predicate predicate = null;
+		boolean replacePredicate = true;
 		if (IntegerPredicateBuilder.isIntegerClass(path.getJavaType())) {
+			replacePredicate = false;
 			predicate = IntegerPredicateBuilder.buildPredicate(builder, path, value);
 		} else if (DecimalPredicateBuilder.isDecimalClass(path.getJavaType())) {
 			predicate = DecimalPredicateBuilder.buildPredicate(builder, path, value);
 		} else if (BooleanPredicateBuilder.isBooleanClass(path.getJavaType())) {
+			replacePredicate = false;
 			predicate = BooleanPredicateBuilder.buildPredicate(builder, path, value);
 		} else if (DatePredicateBuilder.isDateClass(path.getJavaType())) {
 			predicate = DatePredicateBuilder.buildPredicate(builder, path, value);
 		}
 
-		if (predicate == null) {
+		if (predicate == null && replacePredicate) {
 			predicate = StringPredicateBuilder.buildPredicate(builder, path, value);
 		}
 
 		return predicate;
-
 	}
 
 	public static Predicate alwaysTrue(CriteriaBuilder builder) {
