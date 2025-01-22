@@ -260,11 +260,14 @@ public class QueryHelper {
 			String value) {
 
 		Predicate predicate = null;
+		// en caso que el formato no sea el correcto ignora la búsqueda
+		// por ejemplo si se busca un número y se ingresa un texto con formato no numérico
 		boolean replacePredicate = true;
 		if (IntegerPredicateBuilder.isIntegerClass(path.getJavaType())) {
 			replacePredicate = false;
 			predicate = IntegerPredicateBuilder.buildPredicate(builder, path, value);
 		} else if (DecimalPredicateBuilder.isDecimalClass(path.getJavaType())) {
+			replacePredicate = false;
 			predicate = DecimalPredicateBuilder.buildPredicate(builder, path, value);
 		} else if (BooleanPredicateBuilder.isBooleanClass(path.getJavaType())) {
 			replacePredicate = false;

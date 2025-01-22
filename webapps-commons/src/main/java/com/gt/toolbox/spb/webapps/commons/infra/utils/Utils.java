@@ -119,6 +119,12 @@ public class Utils implements Serializable {
 	public static final DateTimeFormatter DTF_SLASH_ISO_YYMDHM =
 			DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm");
 
+	public static final DateTimeFormatter DTF_BAR_ISO_YMD =
+			DateTimeFormatter.ofPattern("yy-MM-dd");
+
+	public static final DateTimeFormatter DTF_BAR_ISO_YYMD =
+			DateTimeFormatter.ofPattern("yyyy-MM-dd");
+
 	public static final DateTimeFormatter DTF_BAR_ISO_YYMDHMS =
 			DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
