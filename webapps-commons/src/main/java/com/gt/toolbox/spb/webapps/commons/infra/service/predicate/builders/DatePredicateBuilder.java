@@ -4,6 +4,7 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
@@ -65,40 +66,40 @@ public class DatePredicateBuilder {
 
 
         if (value != null && !value.isBlank()) {
-            Expression<LocalDateTime> dateExpression = path.as(LocalDateTime.class);
+            Expression<ZonedDateTime> dateExpression = path.as(ZonedDateTime.class);
 
-            LocalDateTime tmpDateValue;
+            ZonedDateTime tmpDateValue;
             String tmpString = "";
 
             try {
                 Predicate predicate = null;
                 if (value.startsWith("=")) {
                     tmpString = value.substring(1).trim().replace(",", ".");
-                    tmpDateValue = parseLocalDateTime(tmpString);
+                    tmpDateValue = parseZonedDateTime(tmpString);
                     if (tmpDateValue != null) {
                         predicate = builder.equal(dateExpression, tmpDateValue);
                     }
                 } else if (value.startsWith("<=")) {
                     tmpString = value.substring(2).trim().replace(",", ".");
-                    tmpDateValue = parseLocalDateTime(tmpString);
+                    tmpDateValue = parseZonedDateTime(tmpString);
                     if (tmpDateValue != null) {
                         predicate = builder.lessThanOrEqualTo(dateExpression, tmpDateValue);
                     }
                 } else if (value.startsWith("<")) {
                     tmpString = value.substring(1).trim().replace(",", ".");
-                    tmpDateValue = parseLocalDateTime(tmpString);
+                    tmpDateValue = parseZonedDateTime(tmpString);
                     if (tmpDateValue != null) {
                         predicate = builder.lessThan(dateExpression, tmpDateValue);
                     }
                 } else if (value.startsWith(">=")) {
                     tmpString = value.substring(2).trim().replace(",", ".");
-                    tmpDateValue = parseLocalDateTime(tmpString);
+                    tmpDateValue = parseZonedDateTime(tmpString);
                     if (tmpDateValue != null) {
                         predicate = builder.greaterThanOrEqualTo(dateExpression, tmpDateValue);
                     }
                 } else if (value.startsWith(">")) {
                     tmpString = value.substring(1).trim().replace(",", ".");
-                    tmpDateValue = parseLocalDateTime(tmpString);
+                    tmpDateValue = parseZonedDateTime(tmpString);
                     if (tmpDateValue != null) {
                         predicate = builder.greaterThan(dateExpression, tmpDateValue);
                     }
@@ -124,8 +125,10 @@ public class DatePredicateBuilder {
         return Objects.equals(Date.class, clazz) || Objects.equals(java.sql.Date.class, clazz)
                 || Objects.equals(Calendar.class, clazz)
                 || Objects.equals(GregorianCalendar.class, clazz)
-                || Objects.equals(LocalDate.class, clazz) || Objects.equals(LocalTime.class, clazz)
-                || Objects.equals(LocalDateTime.class, clazz);
+                || Objects.equals(LocalDate.class, clazz)
+                || Objects.equals(LocalTime.class, clazz)
+                || Objects.equals(LocalDateTime.class, clazz)
+                || Objects.equals(ZonedDateTime.class, clazz);
     }
 
     public static Date parseDate(String fecha) {
@@ -155,7 +158,7 @@ public class DatePredicateBuilder {
         return null;
     }
 
-    public static LocalDateTime parseLocalDateTime(String fecha) {
+    public static ZonedDateTime parseZonedDateTime(String fecha) {
 
         if (!fecha.contains(":")) {
             if (!fecha.contains(" ")) {
@@ -171,7 +174,7 @@ public class DatePredicateBuilder {
         for (DateTimeFormatter dtf : formats) {
             try {
                 var parsed = dtf.parse(fecha);
-                var ret = LocalDateTime.from(parsed);
+                var ret = ZonedDateTime.from(parsed);
                 return ret;
             } catch (DateTimeParseException ex) {
             }

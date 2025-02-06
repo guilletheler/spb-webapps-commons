@@ -105,6 +105,9 @@ public class Utils implements Serializable {
 	public static final DateTimeFormatter DTF_SLASH_DMYYHMS =
 			DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
 
+	public static final DateTimeFormatter DTF_ISO8601 =
+			DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss.SSSXXX");
+
 	public static final DateTimeFormatter DTF_ISO_YYMD = DateTimeFormatter.ofPattern("yyyyMMdd");
 
 	public static final DateTimeFormatter DTF_ISO_YYMDHMS =
@@ -133,7 +136,7 @@ public class Utils implements Serializable {
 
 	public static final DateTimeFormatter[] LOCAL_DATE_TIME_FORMATS =
 			new DateTimeFormatter[] {DTF_SLASH_DMYHM, DTF_SLASH_DMYHMS, DTF_SLASH_DMYYHM,
-					DTF_SLASH_DMYYHMS};
+					DTF_SLASH_DMYYHMS, DTF_ISO8601};
 
 
 

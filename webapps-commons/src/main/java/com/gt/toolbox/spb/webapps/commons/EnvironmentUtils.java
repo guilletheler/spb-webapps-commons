@@ -3,7 +3,7 @@ package com.gt.toolbox.spb.webapps.commons;
 import java.io.File;
 import java.security.CodeSource;
 import java.time.Instant;
-import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 import java.time.ZoneId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,10 +44,9 @@ public class EnvironmentUtils {
 
 	}
 
-	public static LocalDateTime getCompiledDate(Class<?> mainClass) {
+	public static ZonedDateTime getCompiledDate(Class<?> mainClass) {
 		var file = getJarFile(mainClass);
-		return Instant.ofEpochMilli(file.lastModified()).atZone(ZoneId.systemDefault())
-				.toLocalDateTime();
+		return Instant.ofEpochMilli(file.lastModified()).atZone(ZoneId.systemDefault());
 	}
 
 	public static File getJarFile(Class<?> mainClass) {
