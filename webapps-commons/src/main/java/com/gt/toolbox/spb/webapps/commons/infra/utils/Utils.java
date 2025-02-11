@@ -4,6 +4,9 @@ import java.io.Serializable;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -12,6 +15,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -318,5 +322,23 @@ public class Utils implements Serializable {
 				.collect(Collectors.toList());
 
 		return steList;
+	}
+
+	public static LocalDateTime toLocalDateTime(ZonedDateTime zdt) {
+		return toLocalDateTime(zdt, ZoneId.systemDefault());
+	}
+
+	public static LocalDateTime toLocalDateTime(ZonedDateTime zdt, ZoneId zone) {
+		return Optional.ofNullable(zdt)
+				.map(nnzdt -> nnzdt.withZoneSameInstant(zone).toLocalDateTime()).orElse(null);
+	}
+
+	public static ZonedDateTime toZonedDateTime(LocalDateTime ldt) {
+		return toZonedDateTime(ldt, ZoneId.systemDefault());
+	}
+
+	public static ZonedDateTime toZonedDateTime(LocalDateTime ldt, ZoneId zone) {
+		return Optional.ofNullable(ldt)
+				.map(nnldt -> nnldt.atZone(zone)).orElse(null);
 	}
 }
