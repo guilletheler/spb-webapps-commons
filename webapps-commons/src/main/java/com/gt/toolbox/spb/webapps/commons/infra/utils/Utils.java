@@ -4,7 +4,9 @@ import java.io.Serializable;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.text.SimpleDateFormat;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
@@ -333,6 +335,25 @@ public class Utils implements Serializable {
 				.map(nnzdt -> nnzdt.withZoneSameInstant(zone).toLocalDateTime()).orElse(null);
 	}
 
+	public static ZonedDateTime toZonedDateTime(LocalTime ldt) {
+		return toZonedDateTime(ldt, ZoneId.systemDefault());
+	}
+
+	public static ZonedDateTime toZonedDateTime(LocalTime ldt, ZoneId zone) {
+		return toZonedDateTime(
+				Optional.ofNullable(ldt).map(nnldt -> nnldt.atDate(LocalDate.now())).orElse(null),
+				zone);
+	}
+
+	public static ZonedDateTime toZonedDateTime(LocalDate ldt) {
+		return toZonedDateTime(ldt, ZoneId.systemDefault());
+	}
+
+	public static ZonedDateTime toZonedDateTime(LocalDate ldt, ZoneId zone) {
+		return toZonedDateTime(
+				Optional.ofNullable(ldt).map(nnldt -> nnldt.atStartOfDay()).orElse(null), zone);
+	}
+
 	public static ZonedDateTime toZonedDateTime(LocalDateTime ldt) {
 		return toZonedDateTime(ldt, ZoneId.systemDefault());
 	}
@@ -340,5 +361,15 @@ public class Utils implements Serializable {
 	public static ZonedDateTime toZonedDateTime(LocalDateTime ldt, ZoneId zone) {
 		return Optional.ofNullable(ldt)
 				.map(nnldt -> nnldt.atZone(zone)).orElse(null);
+	}
+
+	public static LocalDate toLocalDate(ZonedDateTime zdt) {
+		return toLocalDate(zdt, ZoneId.systemDefault());
+	}
+
+	public static LocalDate toLocalDate(ZonedDateTime zdt, ZoneId zone) {
+		return Optional.ofNullable(zdt)
+				.map(nnzdt -> nnzdt.withZoneSameInstant(zone).toLocalDate()).orElse(null);
+
 	}
 }
