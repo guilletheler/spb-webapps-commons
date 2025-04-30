@@ -14,6 +14,7 @@ import com.gt.toolbox.spb.webapps.commons.infra.service.predicate.builders.DateP
 import com.gt.toolbox.spb.webapps.commons.infra.service.predicate.builders.DecimalPredicateBuilder;
 import com.gt.toolbox.spb.webapps.commons.infra.service.predicate.builders.IntegerPredicateBuilder;
 import com.gt.toolbox.spb.webapps.commons.infra.service.predicate.builders.StringPredicateBuilder;
+import com.gt.toolbox.spb.webapps.commons.infra.service.predicate.builders.TimePredicateBuilder;
 import com.gt.toolbox.spb.webapps.payload.FilterMeta;
 import jakarta.persistence.Entity;
 import jakarta.persistence.criteria.CriteriaBuilder;
@@ -274,6 +275,8 @@ public class QueryHelper {
 			predicate = BooleanPredicateBuilder.buildPredicate(builder, path, value);
 		} else if (DatePredicateBuilder.isDateClass(path.getJavaType())) {
 			predicate = DatePredicateBuilder.buildPredicate(builder, path, value);
+		} else if (TimePredicateBuilder.isTimeClass(path.getJavaType())) {
+			predicate = TimePredicateBuilder.buildPredicate(builder, path, value);
 		}
 
 		if (predicate == null && replacePredicate) {
