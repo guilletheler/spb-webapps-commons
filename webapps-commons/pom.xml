@@ -13,13 +13,13 @@
 		<maven.compiler.source>${java.version}</maven.compiler.source>
 		<maven.compiler.target>${java.version}</maven.compiler.target>
 		<apache.commons.lang3.version>3.17.0</apache.commons.lang3.version>
-		<apache.commons.collections4.version>4.4</apache.commons.collections4.version>
-		<spring.data.jpa.version>3.4.2</spring.data.jpa.version>
-		<spring.security.core.version>6.4.2</spring.security.core.version>
+		<apache.commons.collections4.version>4.5.0</apache.commons.collections4.version>
+		<spring.data.jpa.version>3.5.1</spring.data.jpa.version>
+		<spring.security.core.version>6.5.1</spring.security.core.version>
 		<jakarta.persistence.api.version>3.2.0</jakarta.persistence.api.version>
-		<lombok.version>1.18.36</lombok.version>
-		<jackson.version>2.18.2</jackson.version>
-		<junit-bom.version>5.11.4</junit-bom.version>
+		<lombok.version>1.18.38</lombok.version>
+		<jackson.version>2.19.0</jackson.version>
+		<junit-bom.version>5.12.2</junit-bom.version>
 	</properties>
 
 	<dependencyManagement>
@@ -103,7 +103,7 @@
 		<dependency>
 			<groupId>commons-beanutils</groupId>
 			<artifactId>commons-beanutils</artifactId>
-			<version>1.10.0</version>
+			<version>1.11.0</version>
 		</dependency>
 
 		<dependency>

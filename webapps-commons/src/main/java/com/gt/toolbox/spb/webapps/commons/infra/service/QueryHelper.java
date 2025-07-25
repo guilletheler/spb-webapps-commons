@@ -131,9 +131,9 @@ public class QueryHelper {
 							}
 
 						} else {
-							LOG.warn(
-									"GUARDA QUE NO ES ROOT!! Siguiendo path join a {} {}", curPath,
-									path.getJavaType());
+							// LOG.warn(
+							// "GUARDA QUE NO ES ROOT!! Siguiendo path join a {} {}", curPath,
+							// path.getJavaType());
 							path = path.get(splitKey[i]);
 
 						}

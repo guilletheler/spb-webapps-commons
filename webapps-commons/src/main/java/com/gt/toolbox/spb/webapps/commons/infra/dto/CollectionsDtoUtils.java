@@ -73,7 +73,7 @@ public class CollectionsDtoUtils {
      * @param toSynch
      * @param converter
      * @return
-     * @throws BackendException
+     * @throws GtBackendException
      */
     public static <E, D> Collection<E> synchronize(Collection<E> base, Collection<D> toSynch,
             IDtoMapper<E, D> converter) {
