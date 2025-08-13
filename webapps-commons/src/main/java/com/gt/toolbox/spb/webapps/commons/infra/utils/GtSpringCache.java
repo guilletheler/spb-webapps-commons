@@ -15,17 +15,18 @@ public class GtSpringCache<K, V> implements Cache {
     private static final Logger LOG =
             LoggerFactory.getLogger(GtSpringCache.class);
 
-    private final SimpleInMemoryCache<K, V> store;
+    private final GtCache<K, V> store;
 
     public GtSpringCache(String name, long secondsToLive, long secondsInterval, int maxItems) {
-        this(name, secondsToLive, secondsInterval, maxItems, null);
+        this(new InMemoryCacheStoreProvider<>(), name, secondsToLive, secondsInterval, maxItems,
+                null);
     }
 
-    public GtSpringCache(String name,
+    public GtSpringCache(GtCacheStoreProvider<K, V> storeProvider, String name,
             long secondsToLive, long secondsInterval, int maxItems,
             Timer cleanupTimer) {
         this.name = name;
-        store = new SimpleInMemoryCache<K, V>(secondsToLive, secondsInterval, maxItems,
+        store = new GtCache<K, V>(storeProvider, secondsToLive, secondsInterval, maxItems,
                 cleanupTimer);
     }
 
@@ -35,6 +36,9 @@ public class GtSpringCache<K, V> implements Cache {
     @SuppressWarnings("null")
     @Override
     public Object getNativeCache() {
+        if (store == null) {
+            throw new IllegalStateException("Cache is not initialized");
+        }
         return store;
     }
 

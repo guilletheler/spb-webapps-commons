@@ -2,12 +2,8 @@ package com.gt.toolbox.spb.webapps.commons.infra.utils;
 
 import java.io.Closeable;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
-import org.apache.commons.collections4.map.LRUMap;
 
 /**
  * 
@@ -16,13 +12,13 @@ import org.apache.commons.collections4.map.LRUMap;
  * @param <K>
  * @param <T>
  */
-public class SimpleInMemoryCache<K, T> implements Closeable {
+public class GtCache<K, T> implements Closeable {
 
 	private long cleanupDelay;
-	private Map<K, SimpleCacheObject<K, T>> simpleCacheMap;
-	Timer cleanupTimer;
-	boolean closed = false;
-	boolean ownCleanupTimer = true;
+	private GtCacheStoreProvider<K, T> store;
+	private Timer cleanupTimer;
+	private boolean closed = false;
+	private boolean ownCleanupTimer = true;
 
 	/**
 	 * Cache simple en memoria
@@ -31,8 +27,9 @@ public class SimpleInMemoryCache<K, T> implements Closeable {
 	 * @param cleanupDelaySeconds tiempo cada cuánto se ejecuta el cleanup
 	 * @param maxItems cantidad máxima de ítems a guardar
 	 */
-	public SimpleInMemoryCache(long toLiveSeconds, final long cleanupDelaySeconds, int maxItems) {
-		this(toLiveSeconds, cleanupDelaySeconds, maxItems, null);
+	public GtCache(GtCacheStoreProvider<K, T> store, long toLiveSeconds,
+			final long cleanupDelaySeconds, int maxItems) {
+		this(store, toLiveSeconds, cleanupDelaySeconds, maxItems, null);
 	}
 
 	/**
@@ -44,10 +41,12 @@ public class SimpleInMemoryCache<K, T> implements Closeable {
 	 * @param maxItems cantidad máxima de ítems a guardar
 	 * @param cleanupTimer timer que se va a utilizar para programar y ejecutar el cleanup
 	 */
-	public SimpleInMemoryCache(long toLiveSeconds, final long cleanupDelaySeconds, int maxItems,
+	public GtCache(GtCacheStoreProvider<K, T> store, long toLiveSeconds,
+			final long cleanupDelaySeconds, int maxItems,
 			Timer cleanupTimer) {
 
-		simpleCacheMap = Collections.synchronizedMap(new LRUMap<>(maxItems));
+		this.store = store;
+		this.store.initialize(maxItems);
 
 		if (cleanupTimer == null) {
 			ownCleanupTimer = true;
@@ -64,9 +63,7 @@ public class SimpleInMemoryCache<K, T> implements Closeable {
 	}
 
 	public void clear() {
-		synchronized (simpleCacheMap) {
-			this.simpleCacheMap.clear();
-		}
+		store.clear();
 	}
 
 	private void scheduleCleanup() {
@@ -85,59 +82,37 @@ public class SimpleInMemoryCache<K, T> implements Closeable {
 	}
 
 	public void put(K key, T value) {
-		synchronized (simpleCacheMap) {
-			simpleCacheMap.put(key, new SimpleCacheObject<K, T>(value));
-		}
+		store.put(key, new GtCacheObject<K, T>(value));
 	}
 
 	public boolean contains(K key) {
-		return simpleCacheMap.containsKey(key);
+		return store.containsKey(key);
 	}
 
 	public T get(K key) {
 		return getWrapped(key).value;
 	}
 
-	protected SimpleCacheObject<K, T> getWrapped(K key) {
-		SimpleCacheObject<K, T> c = (SimpleCacheObject<K, T>) simpleCacheMap.get(key);
-
-		if (c == null)
-			return null;
-		else {
-			c.lastAccessed = System.currentTimeMillis();
-			return c;
-		}
+	protected GtCacheObject<K, T> getWrapped(K key) {
+		return store.get(key).stream()
+				.peek(value -> value.lastAccessed = System.currentTimeMillis())
+				.findAny()
+				.orElse(null);
 	}
 
 	public void remove(K key) {
-		simpleCacheMap.remove(key);
+		store.remove(key);
 	}
 
 	public int size() {
-		return simpleCacheMap.size();
+		return store.size();
 	}
 
 	public void cleanup() {
 
-		long now = System.currentTimeMillis();
-		var deleteKey = new ArrayList<K>();
+		var deleteKeys = store.getKeysBefore(System.currentTimeMillis() - cleanupDelay);
 
-		synchronized (simpleCacheMap) {
-			for (var entry : simpleCacheMap.entrySet()) {
-				if (entry.getKey() != null
-						&& (now > (cleanupDelay + entry.getValue().lastAccessed))) {
-					deleteKey.add(entry.getKey());
-				}
-			}
-		}
-
-		synchronized (simpleCacheMap) {
-			for (K key : deleteKey) {
-				simpleCacheMap.remove(key);
-				// Se agrega esto para que le de prioridad a otros procesos
-				Thread.yield();
-			}
-		}
+		store.removeAll(deleteKeys);
 	}
 
 	@Override
