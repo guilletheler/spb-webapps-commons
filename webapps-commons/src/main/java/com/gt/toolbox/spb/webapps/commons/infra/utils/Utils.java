@@ -1,6 +1,8 @@
 package com.gt.toolbox.spb.webapps.commons.infra.utils;
 
 import java.io.Serializable;
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.text.SimpleDateFormat;
@@ -16,6 +18,7 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -371,5 +374,50 @@ public class Utils implements Serializable {
 		return Optional.ofNullable(zdt)
 				.map(nnzdt -> nnzdt.withZoneSameInstant(zone).toLocalDate()).orElse(null);
 
+	}
+
+	public static <K, V> Class<?> resolveKeyType(Map<K, V> map) {
+		Type genericSuperclass = map.getClass().getGenericSuperclass();
+
+		if (genericSuperclass instanceof ParameterizedType) {
+			ParameterizedType pt = (ParameterizedType) genericSuperclass;
+			Type[] typeArguments = pt.getActualTypeArguments();
+
+			if (typeArguments.length > 0) {
+				return (Class<?>) typeArguments[0];
+			}
+		}
+
+		return null;
+	}
+
+	public static <K, V> Class<?> resolveValueType(Map<K, V> map) {
+		Type genericSuperclass = map.getClass().getGenericSuperclass();
+
+		if (genericSuperclass instanceof ParameterizedType) {
+			ParameterizedType pt = (ParameterizedType) genericSuperclass;
+			Type[] typeArguments = pt.getActualTypeArguments();
+
+			if (typeArguments.length > 1) {
+				return (Class<?>) typeArguments[1];
+			}
+		}
+
+		return null;
+	}
+
+	public static Class<?> resolveGenericType(Object generic) {
+		Type genericSuperclass = generic.getClass().getGenericSuperclass();
+
+		if (genericSuperclass instanceof ParameterizedType) {
+			ParameterizedType pt = (ParameterizedType) genericSuperclass;
+			Type[] typeArguments = pt.getActualTypeArguments();
+
+			if (typeArguments.length > 1) {
+				return (Class<?>) typeArguments[1];
+			}
+		}
+
+		return null;
 	}
 }
