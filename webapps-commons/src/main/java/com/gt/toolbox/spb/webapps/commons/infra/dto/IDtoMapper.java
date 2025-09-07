@@ -31,6 +31,8 @@ public interface IDtoMapper<E, D> {
 
     E toNewEntity(D dto);
 
+    E toKeyEntity(D dto);
+
     E toEntity(E entity, D dto);
 
     boolean sameKey(E entity, D dto);

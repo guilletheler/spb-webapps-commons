@@ -14,61 +14,80 @@ public class InMemoryCacheStoreProvider<K, T> implements GtCacheStoreProvider<K,
     private final Map<K, GtCacheObject<T>> simpleCacheMap;
     private final Queue<K> keysToDelete = new ConcurrentLinkedQueue<>();
 
+    private final Object lock = new Object();
+
+
     public InMemoryCacheStoreProvider(Integer maxItems) {
         simpleCacheMap = Collections.synchronizedMap(new LRUMap<>(maxItems));
     }
 
     @Override
     public void clear() {
-        var s = simpleCacheMap.keySet();
-        synchronized (s) {
+        synchronized (lock) {
             this.simpleCacheMap.clear();
         }
     }
 
     @Override
     public T put(K key, T value) {
-        simpleCacheMap.put(key, new GtCacheObject<T>(value));
+        if (value == null) {
+            remove(key);
+        } else {
+            synchronized (lock) {
+                simpleCacheMap.put(key, new GtCacheObject<T>(value));
+            }
+        }
         return value;
     }
 
     @Override
     public boolean containsKey(K key) {
-        return simpleCacheMap.containsKey(key);
+        synchronized (lock) {
+            return simpleCacheMap.containsKey(key);
+        }
     }
 
     @Override
     public Optional<T> get(K key) {
-        return Optional.ofNullable(simpleCacheMap.get(key))
-                .map(entry -> {
-                    entry.setLastAccessed(System.currentTimeMillis());
-                    return entry.getValue();
-                });
+        synchronized (lock) {
+            return Optional.ofNullable(simpleCacheMap.get(key))
+                    .map(entry -> {
+                        entry.setLastAccessed(System.currentTimeMillis());
+                        return entry.getValue();
+                    });
+        }
     }
 
     @Override
     public long getLastAccess(K key) {
-        return Optional.ofNullable(simpleCacheMap
-                .get(key))
-                .map(entry -> entry.getLastAccessed())
-                .orElse(-1L);
+        synchronized (lock) {
+            return Optional.ofNullable(simpleCacheMap
+                    .get(key))
+                    .map(entry -> entry.getLastAccessed())
+                    .orElse(-1L);
+        }
     }
 
     @Override
     public void remove(K key) {
-        simpleCacheMap.remove(key);
+        synchronized (lock) {
+            simpleCacheMap.remove(key);
+            Thread.yield();
+        }
     }
 
     @Override
     public int size() {
-        return simpleCacheMap.size();
+        synchronized (lock) {
+            return simpleCacheMap.size();
+        }
     }
 
     private List<K> getKeysBefore(long time) {
-        var s = simpleCacheMap.keySet();
-        synchronized (s) {
-            return s.stream()
-                    .filter(k -> time > simpleCacheMap.get(k).getLastAccessed())
+        synchronized (lock) {
+            return simpleCacheMap.entrySet().stream()
+                    .filter(e -> time > e.getValue().getLastAccessed())
+                    .map(e -> e.getKey())
                     .toList();
         }
     }
@@ -76,7 +95,9 @@ public class InMemoryCacheStoreProvider<K, T> implements GtCacheStoreProvider<K,
     @Async
     @Override
     public void cleanUp(long lastAccessed) {
-        keysToDelete.addAll(getKeysBefore(lastAccessed));
+        synchronized (lock) {
+            keysToDelete.addAll(getKeysBefore(lastAccessed));
+        }
 
         while (!this.keysToDelete.isEmpty()) {
             this.remove(this.keysToDelete.poll());

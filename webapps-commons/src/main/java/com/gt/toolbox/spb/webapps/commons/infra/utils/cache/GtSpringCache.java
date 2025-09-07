@@ -1,5 +1,6 @@
 package com.gt.toolbox.spb.webapps.commons.infra.utils.cache;
 
+import java.util.Optional;
 import java.util.Timer;
 import java.util.concurrent.Callable;
 import org.slf4j.Logger;
@@ -50,7 +51,7 @@ public class GtSpringCache<V> implements Cache {
     @Nullable
     public ValueWrapper get(@NonNull Object key) {
         var tmp = store.get(key);
-        return new SimpleValueWrapper(tmp);
+        return Optional.ofNullable(tmp).map(v -> new SimpleValueWrapper(v)).orElse(null);
     }
 
     @Override

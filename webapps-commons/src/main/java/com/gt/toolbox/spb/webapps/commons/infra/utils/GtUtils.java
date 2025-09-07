@@ -32,10 +32,10 @@ import org.springframework.security.core.context.SecurityContextHolder;
 /**
  * Created by rmpestano on 07/02/17.
  */
-public class Utils implements Serializable {
+public class GtUtils implements Serializable {
 
 	private static final Logger LOG =
-			LoggerFactory.getLogger(Utils.class);
+			LoggerFactory.getLogger(GtUtils.class);
 
 	/**
 	 * 
