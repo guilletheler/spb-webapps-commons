@@ -14,7 +14,7 @@ import java.util.Objects;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import com.gt.toolbox.spb.webapps.commons.infra.utils.Utils;
+import com.gt.toolbox.spb.webapps.commons.infra.utils.GtUtils;
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.Expression;
 import jakarta.persistence.criteria.Path;
@@ -132,7 +132,7 @@ public class DatePredicateBuilder {
 
     public static Date parseDate(String fecha) {
 
-        for (SimpleDateFormat sdf : Utils.DATE_FORMATS) {
+        for (SimpleDateFormat sdf : GtUtils.DATE_FORMATS) {
             try {
                 Date ret = sdf.parse(fecha);
                 return ret;
@@ -145,7 +145,7 @@ public class DatePredicateBuilder {
     }
 
     public static LocalDate parseLocalDate(String fecha) {
-        for (DateTimeFormatter sdf : Utils.LOCAL_DATE_FORMATS) {
+        for (DateTimeFormatter sdf : GtUtils.LOCAL_DATE_FORMATS) {
             try {
                 var ret = LocalDate.parse(fecha, sdf);
                 return ret;
@@ -168,8 +168,8 @@ public class DatePredicateBuilder {
             fecha = fecha + ":00";
         }
 
-        var formats = Utils.LOCAL_DATE_TIME_FORMATS;
-        formats = new DateTimeFormatter[] {Utils.DTF_SLASH_DMYHMS, Utils.DTF_SLASH_DMYYHMS};
+        var formats = GtUtils.LOCAL_DATE_TIME_FORMATS;
+        formats = new DateTimeFormatter[] {GtUtils.DTF_SLASH_DMYHMS, GtUtils.DTF_SLASH_DMYYHMS};
         for (DateTimeFormatter dtf : formats) {
             try {
                 var parsed = dtf.parse(fecha);
