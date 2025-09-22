@@ -12,12 +12,13 @@ public class StringPredicateBuilder {
     private static final Logger LOG =
             LoggerFactory.getLogger(DatePredicateBuilder.class);
 
+    @SuppressWarnings("unchecked")
     public static Predicate buildPredicate(CriteriaBuilder builder, Path<?> path, String value) {
         Predicate predicate = null;
 
         Expression<String> expr;
 
-        if (path.getJavaType().equals(String.class)) {
+        if (path.getJavaType().equals(String.class) || path.getJavaType().isEnum()) {
             expr = (Expression<String>) path;
         } else {
             LOG.info("Casteando " + path.getAlias() + " " + path.getJavaType() + " a String");

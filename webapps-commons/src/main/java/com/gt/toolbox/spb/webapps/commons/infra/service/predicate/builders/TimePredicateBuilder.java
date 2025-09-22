@@ -20,32 +20,31 @@ public class TimePredicateBuilder {
     public static Predicate buildPredicate(CriteriaBuilder builder, Path<?> path, String value) {
         Predicate predicate = null;
 
-        if (value != null && !value.isBlank()) {
-            var fromTo = new Predicate[] {null, null};
-            if (value.startsWith("-")) {
-                fromTo[1] =
-                        buildSinglePredicate(builder, path, "<=" + value.substring(1));
-            } else if (value.endsWith("-")) {
-                fromTo[0] =
-                        buildSinglePredicate(builder, path, ">=" + value.substring(1));
-            } else if (value.contains("-")) {
-                var strFromTo = value.split("-");
-                fromTo[0] =
-                        buildSinglePredicate(builder, path, ">=" + strFromTo[0]);
-                fromTo[1] =
-                        buildSinglePredicate(builder, path, "<=" + strFromTo[1]);
-            }
-
-            if (fromTo[0] != null && fromTo[1] != null) {
-                predicate = builder.and(fromTo[0], fromTo[1]);
-            } else if (fromTo[0] != null) {
-                predicate = fromTo[0];
-            } else if (fromTo[1] != null) {
-                predicate = fromTo[1];
-            } else {
-                predicate = buildSinglePredicate(builder, path, value);
-            }
+        var fromTo = new Predicate[] {null, null};
+        if (value.startsWith("-")) {
+            fromTo[1] =
+                    buildSinglePredicate(builder, path, "<=" + value.substring(1));
+        } else if (value.endsWith("-")) {
+            fromTo[0] =
+                    buildSinglePredicate(builder, path, ">=" + value.substring(1));
+        } else if (value.contains("-")) {
+            var strFromTo = value.split("-");
+            fromTo[0] =
+                    buildSinglePredicate(builder, path, ">=" + strFromTo[0]);
+            fromTo[1] =
+                    buildSinglePredicate(builder, path, "<=" + strFromTo[1]);
         }
+
+        if (fromTo[0] != null && fromTo[1] != null) {
+            predicate = builder.and(fromTo[0], fromTo[1]);
+        } else if (fromTo[0] != null) {
+            predicate = fromTo[0];
+        } else if (fromTo[1] != null) {
+            predicate = fromTo[1];
+        } else {
+            predicate = buildSinglePredicate(builder, path, value);
+        }
+
         return predicate;
     }
 

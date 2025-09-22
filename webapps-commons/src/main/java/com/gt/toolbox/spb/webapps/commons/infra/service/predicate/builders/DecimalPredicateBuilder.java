@@ -17,64 +17,61 @@ public class DecimalPredicateBuilder {
 
         Predicate predicate = null;
 
-        if (value != null && !value.isBlank()) {
+        Expression<BigDecimal> numberExpression = path.as(BigDecimal.class);
 
-            Expression<BigDecimal> numberExpression = path.as(BigDecimal.class);
+        BigDecimal tmpDoubleValue;
+        String tmpString = "";
 
-            BigDecimal tmpDoubleValue;
-            String tmpString = "";
-
-            try {
-                if (value.startsWith("0") || value.startsWith("=")) {
-                    tmpString = value.substring(1).trim().replace(",", ".");
+        try {
+            if (value.startsWith("0") || value.startsWith("=")) {
+                tmpString = value.substring(1).trim().replace(",", ".");
+                tmpDoubleValue = BigDecimal.valueOf(Double.valueOf(tmpString));
+                if (tmpDoubleValue != null) {
+                    predicate = builder.equal(numberExpression, tmpDoubleValue);
+                }
+            } else if (value.startsWith("<=")) {
+                tmpString = value.substring(2).trim().replace(",", ".");
+                tmpDoubleValue = BigDecimal.valueOf(Double.valueOf(tmpString));
+                if (tmpDoubleValue != null) {
+                    predicate = builder.lessThanOrEqualTo(numberExpression, tmpDoubleValue);
+                }
+            } else if (value.startsWith("<")) {
+                tmpString = value.substring(1).trim().replace(",", ".");
+                tmpDoubleValue = BigDecimal.valueOf(Double.valueOf(tmpString));
+                if (tmpDoubleValue != null) {
+                    predicate = builder.lessThan(numberExpression, tmpDoubleValue);
+                }
+            } else if (value.startsWith(">=")) {
+                tmpString = value.substring(2).trim().replace(",", ".");
+                tmpDoubleValue = BigDecimal.valueOf(Double.valueOf(tmpString));
+                if (tmpDoubleValue != null) {
+                    predicate = builder.greaterThanOrEqualTo(numberExpression, tmpDoubleValue);
+                }
+            } else if (value.startsWith(">")) {
+                tmpString = value.substring(1).trim().replace(",", ".");
+                tmpDoubleValue = BigDecimal.valueOf(Double.valueOf(tmpString));
+                if (tmpDoubleValue != null) {
+                    predicate = builder.greaterThan(numberExpression, tmpDoubleValue);
+                }
+            } else {
+                if (value.contains(".") && value.contains(",")
+                        || StringUtils.countMatches(value, ".") > 1) {
+                    tmpString = value.trim().replace(".", "");
+                }
+                tmpString = value.trim().replace(",", ".");
+                if (tmpString.contains(".")) {
                     tmpDoubleValue = BigDecimal.valueOf(Double.valueOf(tmpString));
                     if (tmpDoubleValue != null) {
                         predicate = builder.equal(numberExpression, tmpDoubleValue);
                     }
-                } else if (value.startsWith("<=")) {
-                    tmpString = value.substring(2).trim().replace(",", ".");
-                    tmpDoubleValue = BigDecimal.valueOf(Double.valueOf(tmpString));
-                    if (tmpDoubleValue != null) {
-                        predicate = builder.lessThanOrEqualTo(numberExpression, tmpDoubleValue);
-                    }
-                } else if (value.startsWith("<")) {
-                    tmpString = value.substring(1).trim().replace(",", ".");
-                    tmpDoubleValue = BigDecimal.valueOf(Double.valueOf(tmpString));
-                    if (tmpDoubleValue != null) {
-                        predicate = builder.lessThan(numberExpression, tmpDoubleValue);
-                    }
-                } else if (value.startsWith(">=")) {
-                    tmpString = value.substring(2).trim().replace(",", ".");
-                    tmpDoubleValue = BigDecimal.valueOf(Double.valueOf(tmpString));
-                    if (tmpDoubleValue != null) {
-                        predicate = builder.greaterThanOrEqualTo(numberExpression, tmpDoubleValue);
-                    }
-                } else if (value.startsWith(">")) {
-                    tmpString = value.substring(1).trim().replace(",", ".");
-                    tmpDoubleValue = BigDecimal.valueOf(Double.valueOf(tmpString));
-                    if (tmpDoubleValue != null) {
-                        predicate = builder.greaterThan(numberExpression, tmpDoubleValue);
-                    }
                 } else {
-                    if (value.contains(".") && value.contains(",")
-                            || StringUtils.countMatches(value, ".") > 1) {
-                        tmpString = value.trim().replace(".", "");
-                    }
-                    tmpString = value.trim().replace(",", ".");
-                    if (tmpString.contains(".")) {
-                        tmpDoubleValue = BigDecimal.valueOf(Double.valueOf(tmpString));
-                        if (tmpDoubleValue != null) {
-                            predicate = builder.equal(numberExpression, tmpDoubleValue);
-                        }
-                    } else {
-                        tmpString = "%" + value.trim() + "%";
-                        predicate = builder.like(path.as(String.class), tmpString);
-                    }
+                    tmpString = "%" + value.trim() + "%";
+                    predicate = builder.like(path.as(String.class), tmpString);
                 }
-
-            } catch (NumberFormatException ex) {
-
             }
+
+        } catch (NumberFormatException ex) {
+
         }
 
         return predicate;

@@ -16,53 +16,50 @@ public class IntegerPredicateBuilder {
 
         Predicate predicate = null;
 
-        if (value != null && !value.isBlank()) {
+        Expression<BigInteger> numberExpression = path.as(BigInteger.class);
 
-            Expression<BigInteger> numberExpression = path.as(BigInteger.class);
+        BigInteger tmpLongValue;
+        String tmpString = "";
 
-            BigInteger tmpLongValue;
-            String tmpString = "";
-
-            try {
-                if (value.startsWith("0") || value.startsWith("=")) {
-                    tmpString = value.substring(1).trim();
-                    tmpLongValue = BigInteger.valueOf(Long.valueOf(tmpString));
-                    if (tmpLongValue != null) {
-                        predicate = builder.equal(numberExpression, tmpLongValue);
-                    }
-                } else if (value.startsWith("<=")) {
-                    tmpString = value.substring(2).trim();
-                    tmpLongValue = BigInteger.valueOf(Long.valueOf(tmpString));
-                    if (tmpLongValue != null) {
-                        predicate = builder.lessThanOrEqualTo(numberExpression, tmpLongValue);
-                    }
-                } else if (value.startsWith("<")) {
-                    tmpString = value.substring(1).trim();
-                    tmpLongValue = BigInteger.valueOf(Long.valueOf(tmpString));
-                    if (tmpLongValue != null) {
-                        predicate = builder.lessThan(numberExpression, tmpLongValue);
-                    }
-                } else if (value.startsWith(">=")) {
-                    tmpString = value.substring(2).trim();
-                    tmpLongValue = BigInteger.valueOf(Long.valueOf(tmpString));
-                    if (tmpLongValue != null) {
-                        predicate = builder.greaterThanOrEqualTo(numberExpression, tmpLongValue);
-                    }
-                } else if (value.startsWith(">")) {
-                    tmpString = value.substring(1).trim();
-                    tmpLongValue = BigInteger.valueOf(Long.valueOf(tmpString));
-                    if (tmpLongValue != null) {
-                        predicate = builder.greaterThan(numberExpression, tmpLongValue);
-                    }
-                } else {
-                    tmpString = value.trim().replace(".", "");
-                    tmpString = "%" + value.trim() + "%";
-                    predicate = builder.like(path.as(String.class), tmpString);
+        try {
+            if (value.startsWith("0") || value.startsWith("=")) {
+                tmpString = value.substring(1).trim();
+                tmpLongValue = BigInteger.valueOf(Long.valueOf(tmpString));
+                if (tmpLongValue != null) {
+                    predicate = builder.equal(numberExpression, tmpLongValue);
                 }
-
-            } catch (NumberFormatException ex) {
-
+            } else if (value.startsWith("<=")) {
+                tmpString = value.substring(2).trim();
+                tmpLongValue = BigInteger.valueOf(Long.valueOf(tmpString));
+                if (tmpLongValue != null) {
+                    predicate = builder.lessThanOrEqualTo(numberExpression, tmpLongValue);
+                }
+            } else if (value.startsWith("<")) {
+                tmpString = value.substring(1).trim();
+                tmpLongValue = BigInteger.valueOf(Long.valueOf(tmpString));
+                if (tmpLongValue != null) {
+                    predicate = builder.lessThan(numberExpression, tmpLongValue);
+                }
+            } else if (value.startsWith(">=")) {
+                tmpString = value.substring(2).trim();
+                tmpLongValue = BigInteger.valueOf(Long.valueOf(tmpString));
+                if (tmpLongValue != null) {
+                    predicate = builder.greaterThanOrEqualTo(numberExpression, tmpLongValue);
+                }
+            } else if (value.startsWith(">")) {
+                tmpString = value.substring(1).trim();
+                tmpLongValue = BigInteger.valueOf(Long.valueOf(tmpString));
+                if (tmpLongValue != null) {
+                    predicate = builder.greaterThan(numberExpression, tmpLongValue);
+                }
+            } else {
+                tmpString = value.trim().replace(".", "");
+                tmpString = "%" + value.trim() + "%";
+                predicate = builder.like(path.as(String.class), tmpString);
             }
+
+        } catch (NumberFormatException ex) {
+            // no es un número
         }
 
         return predicate;
