@@ -12,24 +12,17 @@ public class StringPredicateBuilder {
     private static final Logger LOG =
             LoggerFactory.getLogger(DatePredicateBuilder.class);
 
-    @SuppressWarnings("unchecked")
     public static Predicate buildPredicate(CriteriaBuilder builder, Path<?> path, String value) {
         Predicate predicate = null;
 
-        Expression<String> expr;
-
-        if (path.getJavaType().equals(String.class) || path.getJavaType().isEnum()) {
-            expr = (Expression<String>) path;
-        } else {
-            LOG.info("Casteando " + path.getAlias() + " " + path.getJavaType() + " a String");
-            expr = path.as(String.class);
-        }
+        Expression<String> expr = path.as(String.class);
 
         if (value.length() > 1 && value.startsWith("'")) {
             value = value.substring(1);
             if (value.endsWith("'")) {
                 value = value.substring(0, value.length() - 1);
             }
+            LOG.info("Igualando string en campo " + path.getAlias() + " con " + value);
 
             predicate = builder.like(expr,
                     value);

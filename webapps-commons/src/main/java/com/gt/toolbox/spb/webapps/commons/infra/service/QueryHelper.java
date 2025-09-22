@@ -280,6 +280,7 @@ public class QueryHelper {
 				replacePredicate = false;
 				predicate = DatePredicateBuilder.buildPredicate(builder, path, value);
 			} else if (TimePredicateBuilder.isTimeClass(path.getJavaType())) {
+				replacePredicate = false;
 				predicate = TimePredicateBuilder.buildPredicate(builder, path, value);
 			}
 

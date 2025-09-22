@@ -65,8 +65,10 @@ public class DecimalPredicateBuilder {
                         predicate = builder.equal(numberExpression, tmpDoubleValue);
                     }
                 } else {
+                    Expression<String> stringExpression =
+                            builder.function("STR", String.class, path);
                     tmpString = "%" + value.trim() + "%";
-                    predicate = builder.like(path.as(String.class), tmpString);
+                    predicate = builder.like(stringExpression, tmpString);
                 }
             }
 
