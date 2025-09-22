@@ -274,6 +274,9 @@ public class QueryHelper {
 			replacePredicate = false;
 			predicate = BooleanPredicateBuilder.buildPredicate(builder, path, value);
 		} else if (DatePredicateBuilder.isDateClass(path.getJavaType())) {
+			// JPA no intenta transformar un tipo DATE en string, por eso desactivo el
+			// intento de comparar con string
+			replacePredicate = false;
 			predicate = DatePredicateBuilder.buildPredicate(builder, path, value);
 		} else if (TimePredicateBuilder.isTimeClass(path.getJavaType())) {
 			predicate = TimePredicateBuilder.buildPredicate(builder, path, value);

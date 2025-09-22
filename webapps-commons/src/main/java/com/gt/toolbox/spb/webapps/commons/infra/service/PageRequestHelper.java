@@ -94,13 +94,11 @@ public class PageRequestHelper {
 
     private static <T> Predicate buildPredicate(PageRequest pageRequest, Root<T> root,
             CriteriaBuilder builder) {
-        if (Optional.ofNullable(pageRequest).map(pr -> pr.getFilter()).orElse(null) == null) {
-            return QueryHelper.alwaysTrue(builder);
-        }
+        return Optional.ofNullable(pageRequest)
+                .map(pr -> pr.getFilter())
+                .map(filter -> buildPredicate(root, builder, filter))
+                .orElse(QueryHelper.alwaysTrue(builder));
 
-        Predicate ret = buildPredicate(root, builder, pageRequest.getFilter());
-
-        return ret;
     }
 
     private static <T> Predicate buildPredicate(Root<T> root, CriteriaBuilder builder,

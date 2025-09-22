@@ -70,6 +70,7 @@ public class IntegerPredicateBuilder {
 
     public static boolean isIntegerClass(Class<?> clazz) {
         return Objects.equals(Byte.class, clazz) || Objects.equals(byte.class, clazz)
+                || Objects.equals(Short.class, clazz) || Objects.equals(short.class, clazz)
                 || Objects.equals(Integer.class, clazz) || Objects.equals(int.class, clazz)
                 || Objects.equals(Long.class, clazz) || Objects.equals(long.class, clazz)
                 || Objects.equals(BigInteger.class, clazz);

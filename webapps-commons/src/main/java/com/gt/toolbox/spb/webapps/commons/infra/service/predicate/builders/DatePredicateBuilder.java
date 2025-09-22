@@ -4,6 +4,7 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
@@ -74,31 +75,31 @@ public class DatePredicateBuilder {
             try {
                 Predicate predicate = null;
                 if (value.startsWith("=")) {
-                    tmpString = value.substring(1).trim().replace(",", ".");
+                    tmpString = value.substring(1).trim();
                     tmpDateValue = parseZonedDateTime(tmpString);
                     if (tmpDateValue != null) {
                         predicate = builder.equal(dateExpression, tmpDateValue);
                     }
                 } else if (value.startsWith("<=")) {
-                    tmpString = value.substring(2).trim().replace(",", ".");
+                    tmpString = value.substring(2).trim();
                     tmpDateValue = parseZonedDateTime(tmpString);
                     if (tmpDateValue != null) {
                         predicate = builder.lessThanOrEqualTo(dateExpression, tmpDateValue);
                     }
                 } else if (value.startsWith("<")) {
-                    tmpString = value.substring(1).trim().replace(",", ".");
+                    tmpString = value.substring(1).trim();
                     tmpDateValue = parseZonedDateTime(tmpString);
                     if (tmpDateValue != null) {
                         predicate = builder.lessThan(dateExpression, tmpDateValue);
                     }
                 } else if (value.startsWith(">=")) {
-                    tmpString = value.substring(2).trim().replace(",", ".");
+                    tmpString = value.substring(2).trim();
                     tmpDateValue = parseZonedDateTime(tmpString);
                     if (tmpDateValue != null) {
                         predicate = builder.greaterThanOrEqualTo(dateExpression, tmpDateValue);
                     }
                 } else if (value.startsWith(">")) {
-                    tmpString = value.substring(1).trim().replace(",", ".");
+                    tmpString = value.substring(1).trim();
                     tmpDateValue = parseZonedDateTime(tmpString);
                     if (tmpDateValue != null) {
                         predicate = builder.greaterThan(dateExpression, tmpDateValue);
@@ -159,6 +160,10 @@ public class DatePredicateBuilder {
 
     public static ZonedDateTime parseZonedDateTime(String fecha) {
 
+        if (fecha.isBlank()) {
+            return null;
+        }
+
         if (!fecha.contains(":")) {
             if (!fecha.contains(" ")) {
                 fecha = fecha + " 00";
@@ -172,8 +177,8 @@ public class DatePredicateBuilder {
         formats = new DateTimeFormatter[] {GtUtils.DTF_SLASH_DMYHMS, GtUtils.DTF_SLASH_DMYYHMS};
         for (DateTimeFormatter dtf : formats) {
             try {
-                var parsed = dtf.parse(fecha);
-                var ret = ZonedDateTime.from(parsed);
+                LocalDate date = LocalDate.parse(fecha, dtf);
+                var ret = date.atStartOfDay(ZoneId.systemDefault());
                 return ret;
             } catch (DateTimeParseException ex) {
             }

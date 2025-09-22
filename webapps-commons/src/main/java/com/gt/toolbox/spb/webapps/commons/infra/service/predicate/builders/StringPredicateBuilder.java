@@ -1,22 +1,39 @@
 package com.gt.toolbox.spb.webapps.commons.infra.service.predicate.builders;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import jakarta.persistence.criteria.CriteriaBuilder;
+import jakarta.persistence.criteria.Expression;
 import jakarta.persistence.criteria.Path;
 import jakarta.persistence.criteria.Predicate;
 
 public class StringPredicateBuilder {
 
+    private static final Logger LOG =
+            LoggerFactory.getLogger(DatePredicateBuilder.class);
+
     public static Predicate buildPredicate(CriteriaBuilder builder, Path<?> path, String value) {
         Predicate predicate = null;
 
-        if (value.length() > 1 && value.startsWith("'")
-                && value.endsWith("'")) {
-            value = value.substring(1, value.length() - 1);
+        Expression<String> expr;
 
-            predicate = builder.like(path.as(String.class),
+        if (path.getJavaType().equals(String.class)) {
+            expr = (Expression<String>) path;
+        } else {
+            LOG.info("Casteando " + path.getAlias() + " " + path.getJavaType() + " a String");
+            expr = path.as(String.class);
+        }
+
+        if (value.length() > 1 && value.startsWith("'")) {
+            value = value.substring(1);
+            if (value.endsWith("'")) {
+                value = value.substring(0, value.length() - 1);
+            }
+
+            predicate = builder.like(expr,
                     value);
         } else {
-            predicate = builder.like(builder.upper(path.as(String.class)),
+            predicate = builder.like(builder.upper(expr),
                     "%" + value.toUpperCase() + "%");
         }
 
