@@ -2,8 +2,6 @@ package com.gt.toolbox.spb.webapps.commons.infra.service.predicate.builders;
 
 import java.math.BigInteger;
 import java.util.Objects;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.Expression;
 import jakarta.persistence.criteria.Path;
@@ -13,9 +11,6 @@ import jakarta.persistence.criteria.Predicate;
  * Sirve para cualquier valor entero: BigInteger, Integer, Long, Short, Byte
  */
 public class IntegerPredicateBuilder {
-
-    private static final Logger LOG =
-            LoggerFactory.getLogger(IntegerPredicateBuilder.class);
 
     public static Predicate buildPredicate(CriteriaBuilder builder, Path<?> path, String value) {
 
