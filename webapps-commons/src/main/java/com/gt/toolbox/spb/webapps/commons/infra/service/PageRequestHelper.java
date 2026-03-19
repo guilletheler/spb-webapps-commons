@@ -85,6 +85,14 @@ public class PageRequestHelper {
     }
 
     @NonNull
+    public static <T> Specification<T> toSpecification(FilterMeta filters) {
+
+        return (Root<T> root, CriteriaQuery<?> query, CriteriaBuilder builder) -> {
+            return buildPredicate(filters, root, builder);
+        };
+    }
+
+    @NonNull
     public static <T> Specification<T> toSpecification(PageRequest pageRequest) {
 
         return (Root<T> root, CriteriaQuery<?> query, CriteriaBuilder builder) -> {
@@ -96,7 +104,14 @@ public class PageRequestHelper {
             CriteriaBuilder builder) {
         return Optional.ofNullable(pageRequest)
                 .map(pr -> pr.getFilter())
-                .map(filter -> buildPredicate(root, builder, filter))
+                .map(filter -> buildPredicate(filter, root, builder))
+                .orElse(QueryHelper.alwaysTrue(builder));
+    }
+
+    private static <T> Predicate buildPredicate(FilterMeta filter, Root<T> root,
+            CriteriaBuilder builder) {
+        return Optional.ofNullable(filter)
+                .map(f -> buildPredicate(root, builder, f))
                 .orElse(QueryHelper.alwaysTrue(builder));
 
     }
