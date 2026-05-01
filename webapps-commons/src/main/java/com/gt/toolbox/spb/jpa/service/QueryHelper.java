@@ -45,7 +45,7 @@ public class QueryHelper {
 		var filterMeta = new FilterMeta();
 		if (filter != null) {
 			filterMeta.setChildrens(new ArrayList<>());
-			filterMeta.setOperator("AND");
+			filterMeta.setOperator("OR");
 			filter.entrySet().forEach(e -> {
 				if (e.getValue() != null && !e.getValue().isBlank()) {
 					filterMeta.getChildrens()
