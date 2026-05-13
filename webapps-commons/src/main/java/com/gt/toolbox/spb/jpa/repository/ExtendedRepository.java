@@ -3,7 +3,7 @@ package com.gt.toolbox.spb.jpa.repository;
 import java.io.Serializable;
 import java.util.List;
 
-import javax.persistence.Tuple;
+import jakarta.persistence.Tuple;
 
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;

@@ -2,7 +2,7 @@ package com.gt.toolbox.spb.pf.commons.infra.utils;
 
 import java.util.List;
 
-import javax.faces.application.FacesMessage;
+import jakarta.faces.application.FacesMessage;
 
 import org.omnifaces.util.Messages;
 
