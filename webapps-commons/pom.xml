@@ -4,7 +4,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.gt.toolbox</groupId>
 	<artifactId>spb-webapps-commons</artifactId>
-	<version>4.0.2</version>
+	<version>4.1.0</version>
 	<description>webapps commons para spring 3 y java 17</description>
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -17,7 +17,7 @@
 		<spring.data.jpa.version>3.5.4</spring.data.jpa.version>
 		<spring.security.core.version>6.5.5</spring.security.core.version>
 		<jakarta.persistence.api.version>3.2.0</jakarta.persistence.api.version>
-		<lombok.version>1.18.42</lombok.version>
+		<lombok.version>1.18.46</lombok.version>
 		<jackson.version>2.19.2</jackson.version>
 		<junit-bom.version>5.13.4</junit-bom.version>
 		<snappy.version>1.1.10.7</snappy.version>
@@ -121,6 +121,19 @@
 		</dependency>
 
 		<dependency>
+			<groupId>org.springframework</groupId>
+			<artifactId>spring-web</artifactId>
+			<version>6.2.2</version>
+			<scope>provided</scope>
+		</dependency>
+		<dependency>
+			<groupId>io.github.perplexhub</groupId>
+			<artifactId>rsql-jpa-specification</artifactId>
+			<version>7.0.0</version>
+			<scope>provided</scope>
+		</dependency>
+
+		<dependency>
 			<groupId>org.junit.jupiter</groupId>
 			<artifactId>junit-jupiter</artifactId>
 			<scope>test</scope>
@@ -135,6 +148,13 @@
 				<version>3.14.0</version>
 				<configuration>
 					<parameters>true</parameters>
+					<annotationProcessorPaths>
+						<path>
+							<groupId>org.projectlombok</groupId>
+							<artifactId>lombok</artifactId>
+							<version>${lombok.version}</version>
+						</path>
+					</annotationProcessorPaths>
 				</configuration>
 			</plugin>
 			<plugin>

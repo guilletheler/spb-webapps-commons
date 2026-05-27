@@ -9,6 +9,9 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.BiConsumer;
+import java.util.function.BiPredicate;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,8 +20,7 @@ import com.gt.toolbox.spb.webapps.commons.infra.model.IWithId;
 
 public class CollectionsDtoUtils {
 
-    private static final Logger LOG =
-            LoggerFactory.getLogger(CollectionsDtoUtils.class);
+    private static final Logger LOG = LoggerFactory.getLogger(CollectionsDtoUtils.class);
 
     /**
      * Toma como base la colección base e incorpora o quita la colección toSynch
@@ -106,6 +108,63 @@ public class CollectionsDtoUtils {
 
     /**
      * Toma como base la colección base e incorpora o quita la colección toSynch
+     */
+    public static <E, D, EL extends Collection<E>, DL extends Collection<D>> EL synchronize(EL base,
+            DL toSynch,
+            BiPredicate<E, D> sameKey,
+            Function<D, E> toNewEntity,
+            BiConsumer<D, E> updateEntity) {
+
+        List<E> toRemove = findToRemove(base, toSynch, sameKey);
+
+        base.removeAll(toRemove);
+
+        if (toSynch != null) {
+            for (D dto : toSynch) {
+
+                // Busco el dto en la colección de entidades
+                E entity = base.stream().filter(e -> sameKey.test(e, dto)).findFirst()
+                        .orElse(null);
+
+                if (entity == null) {
+                    // si no está creo la entidad y la agrego a la lista
+                    entity = toNewEntity.apply(dto);
+                    base.add(entity);
+                } else {
+                    // si está asigno los valores
+                    updateEntity.accept(dto, entity);
+                }
+            }
+        }
+
+        return base;
+    }
+
+    /**
+     * Toma como base la colección base e incorpora o quita la colección toSynch
+     */
+    public static <E, D> Collection<E> synchronize(Collection<E> base, Collection<D> toSynch,
+            Function<E, D> toDto, Function<D, E> toNewEntity, BiConsumer<D, E> updateEntity) {
+
+        BiPredicate<E, D> sameKey = (entity, dto) -> {
+            if (entity == null || dto == null) {
+                return false;
+            }
+            D entityDto = toDto.apply(entity);
+            if (entityDto == null) {
+                return false;
+            }
+            if (entityDto instanceof IWithId && dto instanceof IWithId) {
+                return Objects.equals(((IWithId<?>) entityDto).getId(), ((IWithId<?>) dto).getId());
+            }
+            return Objects.equals(entityDto, dto);
+        };
+
+        return synchronize(base, toSynch, sameKey, toNewEntity, updateEntity);
+    }
+
+    /**
+     * Toma como base la colección base e incorpora o quita la colección toSynch
      * 
      * @param <ID>
      * @param <E>
@@ -119,6 +178,26 @@ public class CollectionsDtoUtils {
     public static <ID, E extends IWithId<ID>, D extends IWithId<ID>> Collection<E> synchronize(
             Collection<E> base, Collection<D> toSynch,
             IDtoMapper<E, D> converter, CrudRepository<E, ID> repo) {
+
+        return synchronize(base, toSynch, repo);
+    }
+
+    /**
+     * Toma como base la colección base e incorpora o quita la colección toSynch
+     */
+    public static <ID, E extends IWithId<ID>, D extends IWithId<ID>> Collection<E> synchronize(
+            Collection<E> base, Collection<D> toSynch,
+            Function<E, D> toDto, CrudRepository<E, ID> repo) {
+
+        return synchronize(base, toSynch, repo);
+    }
+
+    /**
+     * Toma como base la colección base e incorpora o quita la colección toSynch
+     */
+    public static <ID, E extends IWithId<ID>, D extends IWithId<ID>> Collection<E> synchronize(
+            Collection<E> base, Collection<D> toSynch,
+            CrudRepository<E, ID> repo) {
 
         List<E> toRemove = findEntitiesToRemove(base, toSynch);
 
@@ -173,6 +252,43 @@ public class CollectionsDtoUtils {
         return toRemove;
     }
 
+    /**
+     * Toma como base la colección base e incorpora o quita la colección toSynch
+     */
+    public static <E, D> List<E> findToRemove(Collection<E> base, Collection<D> toSynch,
+            BiPredicate<E, D> sameKey) {
+        List<E> toRemove = new ArrayList<>();
+
+        if (base != null && toSynch != null) {
+            for (E entity : base) {
+                if (toSynch.stream().noneMatch(dto -> sameKey.test(entity, dto))) {
+                    toRemove.add(entity);
+                }
+            }
+        }
+        return toRemove;
+    }
+
+    /**
+     * Toma como base la colección base e incorpora o quita la colección toSynch
+     */
+    public static <E, D> List<E> findToRemove(Collection<E> base, Collection<D> toSynch,
+            Function<E, D> toDto) {
+        return findToRemove(base, toSynch, (entity, dto) -> {
+            if (entity == null || dto == null) {
+                return false;
+            }
+            D entityDto = toDto.apply(entity);
+            if (entityDto == null) {
+                return false;
+            }
+            if (entityDto instanceof IWithId && dto instanceof IWithId) {
+                return Objects.equals(((IWithId<?>) entityDto).getId(), ((IWithId<?>) dto).getId());
+            }
+            return Objects.equals(entityDto, dto);
+        });
+    }
+
     public static <ID, E extends IWithId<ID>, D extends IWithId<ID>> List<E> findEntitiesToRemove(
             Collection<E> entityCollection, Collection<D> dtoCollection) {
         List<E> toRemove = new ArrayList<>();
@@ -213,7 +329,8 @@ public class CollectionsDtoUtils {
     }
 
     /**
-     * Toma como base el Map<K, V> base e incorpora o quita la lista de List<KeyValueDto<K, V>>
+     * Toma como base el Map<K, V> base e incorpora o quita la lista de
+     * List<KeyValueDto<K, V>>
      * toSynch
      * 
      * @param <K>
@@ -241,7 +358,8 @@ public class CollectionsDtoUtils {
     }
 
     /**
-     * Toma como base el Map<K, V> base e incorpora o quita la lista de List<KeyValueDto<K, V>>
+     * Toma como base el Map<K, V> base e incorpora o quita la lista de
+     * List<KeyValueDto<K, V>>
      * toSynch
      * 
      * @param <K>

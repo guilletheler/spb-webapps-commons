@@ -11,6 +11,12 @@ import org.apache.commons.lang3.StringUtils;
 import lombok.Getter;
 import lombok.extern.java.Log;
 
+/**
+ * Clase abstracta que implementa la interface IDtoMapper
+ * 
+ * @deprecated Utilizar mapstruct en su lugar
+ */
+@Deprecated
 @Log
 public abstract class AbstractDtoMapper<E, D> implements IDtoMapper<E, D> {
 
@@ -24,11 +30,11 @@ public abstract class AbstractDtoMapper<E, D> implements IDtoMapper<E, D> {
     Map<EntityDetailLevel, List<String>> excludeProperties = new HashMap<>();
 
     /*
-     * Métodos que guardo para aumentar la performance al convertir y no tenér que buscarlos en cada
+     * Métodos que guardo para aumentar la performance al convertir y no tenér que
+     * buscarlos en cada
      * conversión
      */
     Map<String, Method[]> keyMethods;
-
 
     @Override
     public boolean sameKey(E entity, D dto) {
@@ -74,7 +80,7 @@ public abstract class AbstractDtoMapper<E, D> implements IDtoMapper<E, D> {
                 var dtoMethod = dtoClass.getDeclaredMethod(methodName);
                 var entityMethod = entityClass.getDeclaredMethod(methodName);
 
-                keyMethods.put(k, new Method[] {entityMethod, dtoMethod});
+                keyMethods.put(k, new Method[] { entityMethod, dtoMethod });
             } catch (NoSuchMethodException | SecurityException e) {
                 log.log(Level.SEVERE, "Error descubriendo key methods");
             }

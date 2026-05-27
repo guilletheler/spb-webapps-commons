@@ -6,7 +6,10 @@ import lombok.Getter;
 
 /**
  * Indica el nivel de conversión de la entidad a dto
+ * 
+ * @deprecated "Usar mappers con mapstruct"
  */
+@Deprecated(since = "1.1", forRemoval = true)
 public enum EntityDetailLevel {
 
     /**
@@ -20,15 +23,15 @@ public enum EntityDetailLevel {
     /**
      * Se serializa para select, list y completo
      */
-    SELECT(new EntityDetailLevel[] {KEY}),
+    SELECT(new EntityDetailLevel[] { KEY }),
     /**
      * Se serializa para list y completo
      */
-    LIST(new EntityDetailLevel[] {SELECT}),
+    LIST(new EntityDetailLevel[] { SELECT }),
     /**
      * Se serializa solo cuando se pide completo
      */
-    COMPLETE(new EntityDetailLevel[] {EntityDetailLevel.LIST});
+    COMPLETE(new EntityDetailLevel[] { EntityDetailLevel.LIST });
 
     EntityDetailLevel[] includedLevels;
 
