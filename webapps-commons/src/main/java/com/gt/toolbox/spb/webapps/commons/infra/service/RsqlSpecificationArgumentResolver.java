@@ -4,7 +4,6 @@ import java.lang.reflect.Field;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
-import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
@@ -12,15 +11,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import io.github.perplexhub.rsql.RSQLJPASupport;
-import jakarta.persistence.criteria.CriteriaBuilder;
-import jakarta.persistence.criteria.CriteriaQuery;
-import jakarta.persistence.criteria.Expression;
-import jakarta.persistence.criteria.From;
-import jakarta.persistence.criteria.JoinType;
-import jakarta.persistence.criteria.Path;
-import jakarta.persistence.criteria.Predicate;
-import jakarta.persistence.criteria.Root;
+
 import org.springframework.core.MethodParameter;
 import org.springframework.core.ResolvableType;
 import org.springframework.data.jpa.domain.Specification;
@@ -30,22 +21,16 @@ import org.springframework.web.bind.support.WebDataBinderFactory;
 import org.springframework.web.context.request.NativeWebRequest;
 import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 import org.springframework.web.method.support.ModelAndViewContainer;
-/**
- * Resolver de argumentos de controlador que mapea parámetros de consulta "filter" en formato RSQL
- * a objetos {@link Specification} de Spring Data JPA.
- *
- * <p>Para configurarlo en una aplicación Spring Boot, agregue el resolver a la configuración de Spring WebMvc:</p>
- * <pre>{@code
- * @Configuration
- * public class WebConfig implements WebMvcConfigurer {
- *
- *     @Override
- *     public void addArgumentResolvers(List<HandlerMethodArgumentResolver> resolvers) {
- *         resolvers.add(new RsqlSpecificationArgumentResolver());
- *     }
- * }
- * }</pre>
- */
+
+import jakarta.persistence.criteria.CriteriaBuilder;
+import jakarta.persistence.criteria.CriteriaQuery;
+import jakarta.persistence.criteria.Expression;
+import jakarta.persistence.criteria.From;
+import jakarta.persistence.criteria.JoinType;
+import jakarta.persistence.criteria.Path;
+import jakarta.persistence.criteria.Predicate;
+import jakarta.persistence.criteria.Root;
+
 public class RsqlSpecificationArgumentResolver implements HandlerMethodArgumentResolver {
 
     private static class FieldMeta {
@@ -60,19 +45,8 @@ public class RsqlSpecificationArgumentResolver implements HandlerMethodArgumentR
         }
     }
 
-    private static class CastedCondition {
-        final String field;
-        final String operator;
-        final String value;
-        final FieldMeta meta;
-
-        CastedCondition(String field, String operator, String value, FieldMeta meta) {
-            this.field = field;
-            this.operator = operator;
-            this.value = value;
-            this.meta = meta;
-        }
-    }
+    private static final Pattern COMPARISON_PATTERN = Pattern.compile(
+            "([a-zA-Z0-9_.]+)(==|=like=|=ilike=|!=|=gt=|=lt=|=ge=|=le=|=in=|=out=)('[^']*'|\\\"[^\\\"]*\\\"|\\([^)]*\\)|[^\\s,;()]+)");
 
     @Override
     public boolean supportsParameter(@NonNull MethodParameter parameter) {
@@ -91,185 +65,370 @@ public class RsqlSpecificationArgumentResolver implements HandlerMethodArgumentR
 
         Class<?> entityClass = ResolvableType.forMethodParameter(parameter).getGeneric(0).resolve();
         if (entityClass == null) {
-            return RSQLJPASupport.toSpecification(filter);
+            return null;
         }
 
-        final String originalFilter = filter;
-        final List<CastedCondition> castedConditions = new ArrayList<>();
-        final String cleanedFilter = cleanFilter(filter, entityClass, castedConditions);
-
-        return new Specification<Object>() {
-            @Override
-            public Predicate toPredicate(@NonNull Root<Object> root,
-                    @Nullable CriteriaQuery<?> query,
-                    @NonNull CriteriaBuilder cb) {
-                Predicate rsqlPredicate = null;
-                if (cleanedFilter != null && !cleanedFilter.trim().isEmpty()) {
-                    Specification<Object> rsqlSpec = RSQLJPASupport.toSpecification(cleanedFilter);
-                    rsqlPredicate = rsqlSpec.toPredicate(root, query, cb);
-                }
-
-                List<Predicate> customPredicates = new ArrayList<>();
-                for (CastedCondition cond : castedConditions) {
-                    try {
-                        Expression<?> path = root;
-                        String[] parts = cond.field.split("\\.");
-                        for (int i = 0; i < parts.length; i++) {
-                            String part = parts[i];
-                            if (i == parts.length - 1) {
-                                if (cond.meta.isCollection) {
-                                    path = ((From<?, ?>) path).join(part, JoinType.LEFT);
-                                } else if (cond.meta.isMap) {
-                                    path = ((From<?, ?>) path).joinMap(part, JoinType.LEFT).value();
-                                } else {
-                                    path = ((Path<?>) path).get(part);
-                                }
-                            } else {
-                                path = ((From<?, ?>) path).join(part, JoinType.LEFT);
-                            }
-                        }
-                        Expression<String> stringExpr;
-                        if (Date.class.isAssignableFrom(cond.meta.type) ||
-                                java.util.Calendar.class.isAssignableFrom(cond.meta.type) ||
-                                java.time.temporal.TemporalAccessor.class.isAssignableFrom(cond.meta.type)) {
-                            stringExpr = cb.lower(cb.function("to_char", String.class, path, cb.literal("DD/MM/YYYY HH24:MI:SS")));
-                        } else {
-                            stringExpr = cb.lower(path.cast(String.class));
-                        }
-                        String cleanVal = cond.value;
-                        if (cleanVal.startsWith("'") && cleanVal.endsWith("'")) {
-                            cleanVal = cleanVal.substring(1, cleanVal.length() - 1);
-                        } else if (cleanVal.startsWith("\"") && cleanVal.endsWith("\"")) {
-                            cleanVal = cleanVal.substring(1, cleanVal.length() - 1);
-                        }
-                        String pattern = cleanVal.replace("*", "%").toLowerCase();
-                        if (cond.operator.equals("!=") || cond.operator.equals("=out=")) {
-                            customPredicates.add(cb.notLike(stringExpr, pattern));
-                        } else {
-                            customPredicates.add(cb.like(stringExpr, pattern));
-                        }
-                    } catch (Exception e) {
-                        // Ignore path traversal errors
-                    }
-                }
-
-                boolean useAnd = originalFilter.contains(";") && !originalFilter.contains(",");
-
-                if (rsqlPredicate == null) {
-                    if (customPredicates.isEmpty()) {
-                        return null;
-                    }
-                    return useAnd ? cb.and(customPredicates.toArray(new Predicate[0]))
-                            : cb.or(customPredicates.toArray(new Predicate[0]));
-                } else {
-                    if (customPredicates.isEmpty()) {
-                        return rsqlPredicate;
-                    }
-                    List<Predicate> all = new ArrayList<>();
-                    all.add(rsqlPredicate);
-                    all.addAll(customPredicates);
-                    return useAnd ? cb.and(all.toArray(new Predicate[0]))
-                            : cb.or(all.toArray(new Predicate[0]));
-                }
-            }
-        };
+        return parseFilter(filter, entityClass);
     }
 
-    private static String cleanFilter(String filter, Class<?> entityClass, List<CastedCondition> castedConditions) {
-        Pattern pattern = Pattern.compile(
-                "([a-zA-Z0-9_.]+)(==|=like=|!=|=gt=|=lt=|=ge=|=le=|=in=|=out=)('[^']*'|\\\"[^\\\"]*\\\"|\\([^)]*\\)|[^\\s,;()]+)");
-        Matcher matcher = pattern.matcher(filter);
-        StringBuilder sb = new StringBuilder();
-        int lastEnd = 0;
-        while (matcher.find()) {
-            sb.append(filter, lastEnd, matcher.start());
+    private static Specification<Object> parseFilter(String filter, Class<?> entityClass) {
+        if (filter == null || filter.trim().isEmpty()) {
+            return null;
+        }
+
+        String trimmed = filter.trim();
+        while (trimmed.startsWith("(") && trimmed.endsWith(")")) {
+            int len = trimmed.length();
+            int level = 0;
+            boolean matching = true;
+            for (int i = 0; i < len - 1; i++) {
+                char c = trimmed.charAt(i);
+                if (c == '(') {
+                    level++;
+                } else if (c == ')') {
+                    level--;
+                    if (level == 0) {
+                        matching = false;
+                        break;
+                    }
+                }
+            }
+            if (matching) {
+                trimmed = trimmed.substring(1, len - 1).trim();
+            } else {
+                break;
+            }
+        }
+
+        if (trimmed.isEmpty()) {
+            return null;
+        }
+
+        List<String> orParts = splitTopLevel(trimmed, ',');
+        if (orParts.size() > 1) {
+            Specification<Object> spec = null;
+            for (String part : orParts) {
+                Specification<Object> partSpec = parseFilter(part, entityClass);
+                if (partSpec != null) {
+                    if (spec == null) {
+                        spec = partSpec;
+                    } else {
+                        spec = spec.or(partSpec);
+                    }
+                }
+            }
+            return spec;
+        }
+
+        List<String> andParts = splitTopLevel(trimmed, ';');
+        if (andParts.size() > 1) {
+            Specification<Object> spec = null;
+            for (String part : andParts) {
+                Specification<Object> partSpec = parseFilter(part, entityClass);
+                if (partSpec != null) {
+                    if (spec == null) {
+                        spec = partSpec;
+                    } else {
+                        spec = spec.and(partSpec);
+                    }
+                }
+            }
+            return spec;
+        }
+
+        Matcher matcher = COMPARISON_PATTERN.matcher(trimmed);
+        if (matcher.matches()) {
             String field = matcher.group(1);
             String operator = matcher.group(2);
             String value = matcher.group(3);
 
             FieldMeta meta = getFieldMeta(entityClass, field);
-            if (meta != null && (meta.isCollection || meta.isMap)) {
-                if (operator.equals("==") || operator.equals("!=") || operator.equals("=like=")) {
-                    if (isCastableToString(meta.type)) {
-                        castedConditions.add(new CastedCondition(field, operator, value, meta));
+            if (meta != null) {
+                return new Specification<Object>() {
+                    @Override
+                    public Predicate toPredicate(@NonNull Root<Object> root,
+                            @Nullable CriteriaQuery<?> query,
+                            @NonNull CriteriaBuilder cb) {
+                        try {
+                            Expression<?> path = root;
+                            String[] parts = field.split("\\.");
+                            for (int i = 0; i < parts.length; i++) {
+                                String part = parts[i];
+                                if (i == parts.length - 1) {
+                                    if (meta.isCollection) {
+                                        path = ((From<?, ?>) path).join(part, JoinType.LEFT);
+                                    } else if (meta.isMap) {
+                                        path = ((From<?, ?>) path).joinMap(part, JoinType.LEFT).value();
+                                    } else {
+                                        path = ((Path<?>) path).get(part);
+                                    }
+                                } else {
+                                    path = ((From<?, ?>) path).join(part, JoinType.LEFT);
+                                }
+                            }
+                            return buildPredicate((Path<?>) path, cb, operator, value, meta);
+                        } catch (Exception e) {
+                            System.err.println("Error creating predicate for field: " + field);
+                            e.printStackTrace();
+                            return cb.disjunction();
+                        }
                     }
-                }
-            } else if (meta != null && isCompatible(meta.type, value)) {
-                if (meta.type == String.class) {
-                    String newOperator = operator;
-                    if (operator.equals("==") || operator.equals("=like=")) {
-                        newOperator = "=ilike=";
-                    } else if (operator.equals("!=") || operator.equals("=notlike=")) {
-                        newOperator = "=inotlike=";
-                    }
-                    sb.append(field).append(newOperator).append(value);
-                } else {
-                    sb.append(matcher.group(0));
-                }
-            } else if (meta != null) {
-                if (operator.equals("==") || operator.equals("!=") || operator.equals("=like=")) {
-                    if (isCastableToString(meta.type)) {
-                        castedConditions.add(new CastedCondition(field, operator, value, meta));
-                    }
-                }
-            } else {
-                // Unknown field, keep it to be safe
-                sb.append(matcher.group(0));
+                };
             }
-            lastEnd = matcher.end();
         }
-        sb.append(filter, lastEnd, filter.length());
 
-        String cleaned = sb.toString();
-
-        String prev;
-        do {
-            prev = cleaned;
-            cleaned = cleaned.replace(",,", ",")
-                    .replace(";;", ";")
-                    .replace(",;", ";")
-                    .replace(";,", ";")
-                    .replace("(,", "(")
-                    .replace("(;", "(")
-                    .replace(",)", ")")
-                    .replace(";)", ")")
-                    .replace("()", "");
-        } while (!cleaned.equals(prev));
-
-        cleaned = cleaned.trim();
-        if (cleaned.startsWith(","))
-            cleaned = cleaned.substring(1);
-        if (cleaned.startsWith(";"))
-            cleaned = cleaned.substring(1);
-        if (cleaned.endsWith(","))
-            cleaned = cleaned.substring(0, cleaned.length() - 1);
-        if (cleaned.endsWith(";"))
-            cleaned = cleaned.substring(0, cleaned.length() - 1);
-
-        return cleaned;
+        return null;
     }
 
-    private static boolean isCastableToString(Class<?> type) {
+    private static List<String> splitTopLevel(String query, char targetChar) {
+        List<String> parts = new ArrayList<>();
+        int parenthesisLevel = 0;
+        boolean inSingleQuote = false;
+        boolean inDoubleQuote = false;
+        int lastStart = 0;
+        int len = query.length();
+        for (int i = 0; i < len; i++) {
+            char c = query.charAt(i);
+            if (c == '\'' && !inDoubleQuote) {
+                inSingleQuote = !inSingleQuote;
+            } else if (c == '"' && !inSingleQuote) {
+                inDoubleQuote = !inDoubleQuote;
+            } else if (!inSingleQuote && !inDoubleQuote) {
+                if (c == '(') {
+                    parenthesisLevel++;
+                } else if (c == ')') {
+                    parenthesisLevel--;
+                } else if (c == targetChar && parenthesisLevel == 0) {
+                    parts.add(query.substring(lastStart, i));
+                    lastStart = i + 1;
+                }
+            }
+        }
+        parts.add(query.substring(lastStart));
+        return parts;
+    }
+
+    private static boolean isNumericType(Class<?> type) {
         if (type == null) {
             return false;
         }
-        if (type == String.class || type == java.util.UUID.class || type.isEnum()) {
+        if (Number.class.isAssignableFrom(type)) {
             return true;
         }
-        if (type.isPrimitive()) {
-            return type != void.class;
+        return type == int.class || type == long.class || type == double.class ||
+                type == float.class || type == short.class || type == byte.class;
+    }
+
+    private static Predicate buildPredicate(Path<?> path, CriteriaBuilder cb, String operator, String value,
+            FieldMeta meta) {
+        String cleanVal = value;
+        if (cleanVal.startsWith("'") && cleanVal.endsWith("'")) {
+            cleanVal = cleanVal.substring(1, cleanVal.length() - 1);
+        } else if (cleanVal.startsWith("\"") && cleanVal.endsWith("\"")) {
+            cleanVal = cleanVal.substring(1, cleanVal.length() - 1);
         }
-        if (Number.class.isAssignableFrom(type) ||
-                Boolean.class.isAssignableFrom(type) ||
-                Character.class.isAssignableFrom(type)) {
-            return true;
+
+        if (meta.type.isEnum()) {
+            List<Object> matchingEnums = new ArrayList<>();
+            String lowerPattern = cleanVal.replace("*", "").replace("%", "").toLowerCase();
+            boolean hasWildcard = cleanVal.contains("*") || cleanVal.contains("%") || operator.equals("=like=") || operator.equals("=ilike=");
+            for (Object enumConstant : meta.type.getEnumConstants()) {
+                String name = ((Enum<?>) enumConstant).name().toLowerCase();
+                if (hasWildcard) {
+                    if (name.contains(lowerPattern)) {
+                        matchingEnums.add(enumConstant);
+                    }
+                } else {
+                    if (name.equals(lowerPattern)) {
+                        matchingEnums.add(enumConstant);
+                    }
+                }
+            }
+            if (operator.equals("!=") || operator.equals("=out=")) {
+                if (matchingEnums.isEmpty()) {
+                    return cb.conjunction();
+                }
+                return cb.not(path.in(matchingEnums));
+            } else {
+                if (matchingEnums.isEmpty()) {
+                    return cb.disjunction();
+                }
+                return path.in(matchingEnums);
+            }
         }
-        if (Date.class.isAssignableFrom(type) ||
-                java.util.Calendar.class.isAssignableFrom(type) ||
-                java.time.temporal.TemporalAccessor.class.isAssignableFrom(type)) {
-            return true;
+
+        if (meta.type == Boolean.class || meta.type == boolean.class) {
+            List<Boolean> matchingBools = new ArrayList<>();
+            String lowerPattern = cleanVal.replace("*", "").replace("%", "").toLowerCase();
+            if ("true".contains(lowerPattern)) {
+                matchingBools.add(true);
+            }
+            if ("false".contains(lowerPattern)) {
+                matchingBools.add(false);
+            }
+            if (operator.equals("!=") || operator.equals("=out=")) {
+                if (matchingBools.isEmpty()) {
+                    return cb.conjunction();
+                }
+                return cb.not(path.in(matchingBools));
+            } else {
+                if (matchingBools.isEmpty()) {
+                    return cb.disjunction();
+                }
+                return path.in(matchingBools);
+            }
         }
-        return false;
+
+        if (isNumericType(meta.type)) {
+            String clean = cleanVal.replace("*", "").replace("%", "");
+            BigDecimal val;
+            try {
+                val = new BigDecimal(clean);
+            } catch (NumberFormatException e) {
+                if (operator.equals("!=") || operator.equals("=out=")) {
+                    return cb.conjunction();
+                } else {
+                    return cb.disjunction();
+                }
+            }
+
+            @SuppressWarnings("unchecked")
+            var numExpr = (Expression<? extends Number>) path;
+            switch (operator) {
+                case "==":
+                    return cb.equal(numExpr, val);
+                case "!=":
+                    return cb.notEqual(numExpr, val);
+                case "=gt=":
+                    return cb.gt(numExpr, val);
+                case "=ge=":
+                    return cb.ge(numExpr, val);
+                case "=lt=":
+                    return cb.lt(numExpr, val);
+                case "=le=":
+                    return cb.le(numExpr, val);
+                default:
+                    return cb.equal(numExpr, val);
+            }
+        }
+
+        if (meta.type == java.util.UUID.class) {
+            String clean = cleanVal.replace("*", "").replace("%", "");
+            java.util.UUID val;
+            try {
+                val = java.util.UUID.fromString(clean);
+            } catch (IllegalArgumentException e) {
+                if (operator.equals("!=") || operator.equals("=out=")) {
+                    return cb.conjunction();
+                } else {
+                    return cb.disjunction();
+                }
+            }
+            if (operator.equals("!=") || operator.equals("=out=")) {
+                return cb.notEqual(path, val);
+            } else {
+                return cb.equal(path, val);
+            }
+        }
+
+        if (Date.class.isAssignableFrom(meta.type) ||
+                java.time.temporal.TemporalAccessor.class.isAssignableFrom(meta.type) ||
+                java.util.Calendar.class.isAssignableFrom(meta.type)) {
+            java.time.LocalDate localDate = parseLocalDateWithGtUtils(cleanVal);
+            java.time.LocalDateTime localDateTime = parseLocalDateTimeWithGtUtils(cleanVal);
+            java.util.Date utilDate = parseDateWithGtUtils(cleanVal);
+
+            if (meta.type == java.time.LocalDate.class) {
+                java.time.LocalDate val = localDate != null ? localDate
+                        : (localDateTime != null ? localDateTime.toLocalDate() : null);
+                if (val == null) {
+                    return (operator.equals("!=") || operator.equals("=out=")) ? cb.conjunction() : cb.disjunction();
+                }
+                @SuppressWarnings("unchecked")
+                var expr = (Expression<java.time.LocalDate>) path;
+                return buildComparablePredicate(expr, cb, operator, val);
+            } else if (meta.type == java.time.LocalDateTime.class) {
+                java.time.LocalDateTime val = localDateTime != null ? localDateTime
+                        : (localDate != null ? localDate.atStartOfDay() : null);
+                if (val == null) {
+                    return (operator.equals("!=") || operator.equals("=out=")) ? cb.conjunction() : cb.disjunction();
+                }
+                @SuppressWarnings("unchecked")
+                var expr = (Expression<java.time.LocalDateTime>) path;
+                return buildComparablePredicate(expr, cb, operator, val);
+            } else if (Date.class.isAssignableFrom(meta.type)) {
+                java.util.Date val = utilDate;
+                if (val == null) {
+                    return (operator.equals("!=") || operator.equals("=out=")) ? cb.conjunction() : cb.disjunction();
+                }
+                @SuppressWarnings("unchecked")
+                var expr = (Expression<java.util.Date>) path;
+                return buildComparablePredicate(expr, cb, operator, val);
+            }
+        }
+
+        // Strings and anything else (Default)
+        @SuppressWarnings("unchecked")
+        var castedPath = (Expression<String>) path;
+        Expression<String> stringExpr = cb.lower(castedPath);
+        String pattern = cleanVal.replace("*", "%").toLowerCase();
+        boolean hasWildcard = cleanVal.contains("*") || cleanVal.contains("%") || operator.equals("=like=") || operator.equals("=ilike=");
+
+        if (operator.equals("==") || operator.equals("=like=") || operator.equals("=ilike=")) {
+            if (hasWildcard) {
+                if (!pattern.startsWith("%") && !pattern.endsWith("%")) {
+                    pattern = "%" + pattern + "%";
+                }
+                return cb.like(stringExpr, pattern);
+            } else {
+                return cb.equal(stringExpr, pattern);
+            }
+        } else if (operator.equals("!=")) {
+            if (hasWildcard) {
+                if (!pattern.startsWith("%") && !pattern.endsWith("%")) {
+                    pattern = "%" + pattern + "%";
+                }
+                return cb.notLike(stringExpr, pattern);
+            } else {
+                return cb.notEqual(stringExpr, pattern);
+            }
+        } else if (operator.equals("=in=")) {
+            String[] parts = cleanVal.split(",");
+            List<String> list = new ArrayList<>();
+            for (String p : parts) {
+                list.add(p.trim().toLowerCase());
+            }
+            return stringExpr.in(list);
+        } else if (operator.equals("=out=")) {
+            String[] parts = cleanVal.split(",");
+            List<String> list = new ArrayList<>();
+            for (String p : parts) {
+                list.add(p.trim().toLowerCase());
+            }
+            return cb.not(stringExpr.in(list));
+        }
+
+        return cb.equal(stringExpr, pattern);
+    }
+
+    private static <Y extends Comparable<? super Y>> Predicate buildComparablePredicate(Expression<Y> expr,
+            CriteriaBuilder cb, String operator, Y val) {
+        switch (operator) {
+            case "==":
+                return cb.equal(expr, val);
+            case "!=":
+                return cb.notEqual(expr, val);
+            case "=gt=":
+                return cb.greaterThan(expr, val);
+            case "=ge=":
+                return cb.greaterThanOrEqualTo(expr, val);
+            case "=lt=":
+                return cb.lessThan(expr, val);
+            case "=le=":
+                return cb.lessThanOrEqualTo(expr, val);
+            default:
+                return cb.equal(expr, val);
+        }
     }
 
     private static FieldMeta getFieldMeta(Class<?> clazz, String path) {
@@ -335,79 +494,36 @@ public class RsqlSpecificationArgumentResolver implements HandlerMethodArgumentR
         return null;
     }
 
-    private static boolean isCompatible(Class<?> type, String value) {
-        if (type == null) {
-            return true;
-        }
-        String cleanVal = value;
-        if (cleanVal.startsWith("'") && cleanVal.endsWith("'")) {
-            cleanVal = cleanVal.substring(1, cleanVal.length() - 1);
-        } else if (cleanVal.startsWith("\"") && cleanVal.endsWith("\"")) {
-            cleanVal = cleanVal.substring(1, cleanVal.length() - 1);
-        }
-        if (cleanVal.startsWith("*")) {
-            cleanVal = cleanVal.substring(1);
-        }
-        if (cleanVal.endsWith("*")) {
-            cleanVal = cleanVal.substring(0, cleanVal.length() - 1);
-        }
-
-        if (type == Integer.class || type == int.class ||
-                type == Long.class || type == long.class ||
-                type == Double.class || type == double.class ||
-                type == Float.class || type == float.class ||
-                type == Short.class || type == short.class ||
-                type == BigDecimal.class || type == BigInteger.class) {
-            if (value.contains("*")) {
-                return false;
-            }
+    private static java.time.LocalDate parseLocalDateWithGtUtils(String value) {
+        for (java.time.format.DateTimeFormatter dtf : com.gt.toolbox.spb.webapps.commons.infra.utils.GtUtils.LOCAL_DATE_FORMATS) {
             try {
-                new BigDecimal(cleanVal);
-                return true;
-            } catch (NumberFormatException e) {
-                return false;
+                return java.time.LocalDate.parse(value, dtf);
+            } catch (Exception ex) {
+                // ignore
             }
         }
+        return null;
+    }
 
-        if (type == Boolean.class || type == boolean.class) {
-            if (value.contains("*")) {
-                return false;
-            }
-            return "true".equalsIgnoreCase(cleanVal) || "false".equalsIgnoreCase(cleanVal);
-        }
-
-        if (Date.class.isAssignableFrom(type) ||
-                java.time.temporal.TemporalAccessor.class.isAssignableFrom(type)) {
-            if (value.contains("*")) {
-                return false;
-            }
-            return cleanVal.matches("^[0-9T Z:.-]+$");
-        }
-
-        if (type == java.util.UUID.class) {
-            if (value.contains("*")) {
-                return false;
-            }
+    private static java.time.LocalDateTime parseLocalDateTimeWithGtUtils(String value) {
+        for (java.time.format.DateTimeFormatter dtf : com.gt.toolbox.spb.webapps.commons.infra.utils.GtUtils.LOCAL_DATE_TIME_FORMATS) {
             try {
-                java.util.UUID.fromString(cleanVal);
-                return true;
-            } catch (IllegalArgumentException e) {
-                return false;
+                return java.time.LocalDateTime.parse(value, dtf);
+            } catch (Exception ex) {
+                // ignore
             }
         }
+        return null;
+    }
 
-        if (type.isEnum()) {
-            if (value.contains("*")) {
-                return false;
+    private static java.util.Date parseDateWithGtUtils(String value) {
+        for (java.text.SimpleDateFormat sdf : com.gt.toolbox.spb.webapps.commons.infra.utils.GtUtils.DATE_FORMATS) {
+            try {
+                return sdf.parse(value);
+            } catch (Exception ex) {
+                // ignore
             }
-            for (Object enumConstant : type.getEnumConstants()) {
-                if (((Enum<?>) enumConstant).name().equals(cleanVal)) {
-                    return true;
-                }
-            }
-            return false;
         }
-
-        return true;
+        return null;
     }
 }

@@ -25,11 +25,9 @@ import jakarta.persistence.criteria.Path;
 import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Root;
 
-
 public class QueryHelper {
 
-	private static final Logger LOG =
-			LoggerFactory.getLogger(QueryHelper.class);
+	private static final Logger LOG = LoggerFactory.getLogger(QueryHelper.class);
 
 	public static <T> Specification<T> getFilterSpecification(FilterMeta filter) {
 
@@ -263,7 +261,8 @@ public class QueryHelper {
 		Predicate predicate = null;
 		if (value != null && !value.isBlank()) {
 			// en caso que el formato no sea el correcto ignora la búsqueda
-			// por ejemplo si se busca un número y se ingresa un texto con formato no numérico
+			// por ejemplo si se busca un número y se ingresa un texto con formato no
+			// numérico
 			boolean replacePredicate = true;
 			if (IntegerPredicateBuilder.isIntegerClass(path.getJavaType())) {
 				replacePredicate = false;
@@ -300,6 +299,4 @@ public class QueryHelper {
 		return builder.isTrue(builder.literal(false));
 	}
 
-
 }
-

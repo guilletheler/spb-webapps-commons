@@ -33,6 +33,9 @@ public class DatePredicateBuilder {
     public static Predicate buildPredicate(CriteriaBuilder builder, Path<?> path, String value) {
         Predicate predicate = null;
 
+        long hyphenCount = value.chars().filter(ch -> ch == '-').count();
+        boolean isSingleIsoDate = !value.contains("/") && (hyphenCount == 2 || (hyphenCount == 3 && (value.startsWith("=") || value.startsWith("<") || value.startsWith(">"))));
+
         var fromTo = new Predicate[] {null, null};
         if (value.startsWith("-")) {
             fromTo[1] =
@@ -40,7 +43,7 @@ public class DatePredicateBuilder {
         } else if (value.endsWith("-")) {
             fromTo[0] =
                     buildSinglePredicate(builder, path, ">=" + value.substring(1));
-        } else if (value.contains("-")) {
+        } else if (value.contains("-") && !isSingleIsoDate) {
             var strFromTo = value.split("-");
             fromTo[0] =
                     buildSinglePredicate(builder, path, ">=" + strFromTo[0]);
@@ -61,12 +64,13 @@ public class DatePredicateBuilder {
         return predicate;
     }
 
+    @SuppressWarnings({ "unchecked", "rawtypes" })
     public static Predicate buildSinglePredicate(CriteriaBuilder builder, Path<?> path,
             String value) {
 
 
         if (value != null && !value.isBlank()) {
-            Expression<ZonedDateTime> dateExpression = path.as(ZonedDateTime.class);
+            Class<?> type = path.getJavaType();
 
             ZonedDateTime tmpDateValue;
             String tmpString = "";
@@ -77,31 +81,42 @@ public class DatePredicateBuilder {
                     tmpString = value.substring(1).trim();
                     tmpDateValue = parseZonedDateTime(tmpString);
                     if (tmpDateValue != null) {
-                        predicate = builder.equal(dateExpression, tmpDateValue);
+                        Object converted = convertDateValue(tmpDateValue, type);
+                        predicate = builder.equal(path, converted);
+                    } else {
+                        Expression<String> dateStringExpr =
+                                builder.function("to_char", String.class,
+                                        path, builder.literal("DD/MM/YYYY HH24:MI:SS"));
+                        predicate = builder.like(dateStringExpr,
+                                "%" + tmpString.toUpperCase() + "%");
                     }
                 } else if (value.startsWith("<=")) {
                     tmpString = value.substring(2).trim();
                     tmpDateValue = parseZonedDateTime(tmpString);
                     if (tmpDateValue != null) {
-                        predicate = builder.lessThanOrEqualTo(dateExpression, tmpDateValue);
+                        Object converted = convertDateValue(tmpDateValue, type);
+                        predicate = builder.lessThanOrEqualTo((Expression) path, (Comparable) converted);
                     }
                 } else if (value.startsWith("<")) {
                     tmpString = value.substring(1).trim();
                     tmpDateValue = parseZonedDateTime(tmpString);
                     if (tmpDateValue != null) {
-                        predicate = builder.lessThan(dateExpression, tmpDateValue);
+                        Object converted = convertDateValue(tmpDateValue, type);
+                        predicate = builder.lessThan((Expression) path, (Comparable) converted);
                     }
                 } else if (value.startsWith(">=")) {
                     tmpString = value.substring(2).trim();
                     tmpDateValue = parseZonedDateTime(tmpString);
                     if (tmpDateValue != null) {
-                        predicate = builder.greaterThanOrEqualTo(dateExpression, tmpDateValue);
+                        Object converted = convertDateValue(tmpDateValue, type);
+                        predicate = builder.greaterThanOrEqualTo((Expression) path, (Comparable) converted);
                     }
                 } else if (value.startsWith(">")) {
                     tmpString = value.substring(1).trim();
                     tmpDateValue = parseZonedDateTime(tmpString);
                     if (tmpDateValue != null) {
-                        predicate = builder.greaterThan(dateExpression, tmpDateValue);
+                        Object converted = convertDateValue(tmpDateValue, type);
+                        predicate = builder.greaterThan((Expression) path, (Comparable) converted);
                     }
                 } else {
                     Expression<String> dateStringExpr =
@@ -119,6 +134,28 @@ public class DatePredicateBuilder {
         }
 
         return null;
+    }
+
+    private static Object convertDateValue(ZonedDateTime zdt, Class<?> targetType) {
+        if (targetType.equals(LocalDate.class)) {
+            return zdt.toLocalDate();
+        }
+        if (targetType.equals(LocalDateTime.class)) {
+            return zdt.toLocalDateTime();
+        }
+        if (targetType.equals(Date.class)) {
+            return Date.from(zdt.toInstant());
+        }
+        if (targetType.equals(java.sql.Date.class)) {
+            return java.sql.Date.valueOf(zdt.toLocalDate());
+        }
+        if (targetType.equals(java.sql.Timestamp.class)) {
+            return java.sql.Timestamp.valueOf(zdt.toLocalDateTime());
+        }
+        if (targetType.equals(java.util.Calendar.class) || targetType.equals(java.util.GregorianCalendar.class)) {
+            return java.util.GregorianCalendar.from(zdt);
+        }
+        return zdt;
     }
 
     public static boolean isDateClass(Class<?> clazz) {
@@ -172,10 +209,21 @@ public class DatePredicateBuilder {
             fecha = fecha + ":00";
         }
 
-        var formats = GtUtils.LOCAL_DATE_TIME_FORMATS;
-        formats = new DateTimeFormatter[] {GtUtils.DTF_SLASH_DMYHMS, GtUtils.DTF_SLASH_DMYYHMS};
-        for (DateTimeFormatter dtf : formats) {
+        for (DateTimeFormatter dtf : new DateTimeFormatter[] {
+                GtUtils.DTF_SLASH_DMYHMS, 
+                GtUtils.DTF_SLASH_DMYYHMS,
+                GtUtils.DTF_BAR_ISO_YYMDHMS
+        }) {
             try {
+                if (dtf == GtUtils.DTF_BAR_ISO_YYMDHMS) {
+                    try {
+                        var ldt = LocalDateTime.parse(fecha, dtf);
+                        return ldt.atZone(ZoneId.systemDefault());
+                    } catch (DateTimeParseException ex) {
+                        var ld = LocalDate.parse(fecha.split(" ")[0], GtUtils.DTF_BAR_ISO_YYMD);
+                        return ld.atStartOfDay(ZoneId.systemDefault());
+                    }
+                }
                 LocalDate date = LocalDate.parse(fecha, dtf);
                 var ret = date.atStartOfDay(ZoneId.systemDefault());
                 return ret;
