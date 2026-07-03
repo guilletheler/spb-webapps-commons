@@ -4,7 +4,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.gt.toolbox</groupId>
 	<artifactId>spb-webapps-commons</artifactId>
-	<version>4.1.0</version>
+	<version>5.0.0</version>
 	<description>webapps commons para spring 3 y java 17</description>
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>

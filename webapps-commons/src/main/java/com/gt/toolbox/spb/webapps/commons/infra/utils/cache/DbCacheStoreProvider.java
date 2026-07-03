@@ -1,12 +1,13 @@
 package com.gt.toolbox.spb.webapps.commons.infra.utils.cache;
 
 import java.util.Optional;
+import java.util.Map.Entry;
+
 import org.springframework.scheduling.annotation.Async;
-import com.gt.toolbox.spb.webapps.commons.infra.dto.KeyValueDto;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
-public class DbCacheStoreProvider<K, V, T extends KeyValueDto<K, V> & GtLastAccessed>
+public class DbCacheStoreProvider<K, V, T extends Entry<K, V> & GtLastAccessed>
         implements GtCacheStoreProvider<K, V> {
 
     private final DbCacheStoreProviderService<K, V> storeService;

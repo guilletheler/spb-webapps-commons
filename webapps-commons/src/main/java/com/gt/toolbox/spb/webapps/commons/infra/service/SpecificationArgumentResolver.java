@@ -47,6 +47,12 @@ public class SpecificationArgumentResolver implements HandlerMethodArgumentResol
             @Nullable WebDataBinderFactory binderFactory) throws Exception {
         String filter = webRequest.getParameter("filter");
         if (filter == null || filter.trim().isEmpty()) {
+            filter = webRequest.getParameter("query");
+        }
+        if (filter == null || filter.trim().isEmpty()) {
+            filter = webRequest.getParameter("spec");
+        }
+        if (filter == null || filter.trim().isEmpty()) {
             return null;
         }
 
@@ -139,21 +145,16 @@ public class SpecificationArgumentResolver implements HandlerMethodArgumentResol
                         Class<?> fieldType = path.getJavaType();
                         boolean isCollection = Collection.class.isAssignableFrom(fieldType);
 
-                        boolean wasQuoted = (value.startsWith("'") && value.endsWith("'")) 
-                                         || (value.startsWith("\"") && value.endsWith("\""));
+                        boolean wasQuoted = (value.startsWith("'") && value.endsWith("'"))
+                                || (value.startsWith("\"") && value.endsWith("\""));
                         String cleanVal = value;
                         if (wasQuoted) {
                             cleanVal = value.substring(1, value.length() - 1);
                         }
 
-                        // Map RSQL operator/value to the format QueryHelper builders expect
-                        String mappedExpr = mapRsqlValue(fieldType, operator, cleanVal, wasQuoted);
+                        Predicate pred = buildPredicate(path, cb, fieldType, operator, cleanVal, wasQuoted,
+                                isCollection);
 
-                        Predicate pred = QueryHelper.buildPredicate(path, cb, mappedExpr, isCollection);
-
-                        if (pred != null && (operator.equals("!=") || operator.equals("=out="))) {
-                            pred = pred.not();
-                        }
                         return pred;
                     } catch (Exception e) {
                         LOG.error("Error creating predicate for field: " + field, e);
@@ -252,28 +253,76 @@ public class SpecificationArgumentResolver implements HandlerMethodArgumentResol
         return m;
     }
 
-    private static String mapRsqlValue(Class<?> type, String operator, String cleanVal, boolean wasQuoted) {
+    private static Predicate buildPredicate(Path<?> path, CriteriaBuilder cb, Class<?> fieldType, String operator,
+            String value, boolean wasQuoted, boolean isCollection) {
+        Predicate ret = null;
         if (operator.equals("=in=") || operator.equals("=out=")) {
-            String valExpr = cleanVal;
+            String valExpr = value;
             if (valExpr.startsWith("(") && valExpr.endsWith(")")) {
                 valExpr = valExpr.substring(1, valExpr.length() - 1);
             }
             String[] parts = valExpr.split(",");
-            List<String> mappedParts = new ArrayList<>();
+            List<Predicate> orPredicates = new ArrayList<>();
             for (String part : parts) {
                 String trimmed = part.trim();
                 boolean partQuoted = (trimmed.startsWith("'") && trimmed.endsWith("'"))
-                                  || (trimmed.startsWith("\"") && trimmed.endsWith("\""));
+                        || (trimmed.startsWith("\"") && trimmed.endsWith("\""));
                 String partClean = trimmed;
                 if (partQuoted) {
                     partClean = trimmed.substring(1, trimmed.length() - 1);
                 }
-                mappedParts.add(mapSingleValue(type, "==", partClean, partQuoted));
+                Predicate single = buildSinglePredicate(path, cb, fieldType, "==", partClean, partQuoted, isCollection);
+                if (single != null) {
+                    orPredicates.add(single);
+                }
             }
-            return String.join("||", mappedParts);
+            if (!orPredicates.isEmpty()) {
+                ret = cb.or(orPredicates.toArray(new Predicate[0]));
+            }
+        } else {
+            ret = buildSinglePredicate(path, cb, fieldType, operator, value, wasQuoted, isCollection);
         }
 
-        return mapSingleValue(type, operator, cleanVal, wasQuoted);
+        if (ret != null && (operator.equals("!=") || operator.equals("=out="))) {
+            ret = ret.not();
+        }
+
+        return ret;
+    }
+
+    private static Predicate buildSinglePredicate(Path<?> path, CriteriaBuilder cb, Class<?> fieldType, String operator,
+            String cleanVal, boolean wasQuoted, boolean isCollection) {
+        String mappedExpr = mapSingleValue(fieldType, operator, cleanVal, wasQuoted);
+
+        if (isCollection) {
+            return CollectionPredicateBuilder.buildPredicate(cb, path, mappedExpr);
+        }
+
+        Predicate predicate = null;
+        if (mappedExpr != null && !mappedExpr.isBlank()) {
+            boolean replacePredicate = true;
+            if (IntegerPredicateBuilder.isIntegerClass(fieldType)) {
+                replacePredicate = false;
+                predicate = IntegerPredicateBuilder.buildPredicate(cb, path, mappedExpr);
+            } else if (DecimalPredicateBuilder.isDecimalClass(fieldType)) {
+                replacePredicate = false;
+                predicate = DecimalPredicateBuilder.buildPredicate(cb, path, mappedExpr);
+            } else if (BooleanPredicateBuilder.isBooleanClass(fieldType)) {
+                replacePredicate = false;
+                predicate = BooleanPredicateBuilder.buildPredicate(cb, path, mappedExpr);
+            } else if (DatePredicateBuilder.isDateClass(fieldType)) {
+                replacePredicate = false;
+                predicate = DatePredicateBuilder.buildPredicate(cb, path, mappedExpr);
+            } else if (TimePredicateBuilder.isTimeClass(fieldType)) {
+                replacePredicate = false;
+                predicate = TimePredicateBuilder.buildPredicate(cb, path, mappedExpr);
+            }
+
+            if (predicate == null && replacePredicate) {
+                predicate = StringPredicateBuilder.buildPredicate(cb, path, mappedExpr, operator);
+            }
+        }
+        return predicate;
     }
 
     private static String mapSingleValue(Class<?> type, String operator, String cleanVal, boolean wasQuoted) {
@@ -281,7 +330,7 @@ public class SpecificationArgumentResolver implements HandlerMethodArgumentResol
             return cleanVal;
         }
 
-        if (IntegerPredicateBuilder.isIntegerClass(type) 
+        if (IntegerPredicateBuilder.isIntegerClass(type)
                 || DecimalPredicateBuilder.isDecimalClass(type)
                 || DatePredicateBuilder.isDateClass(type)
                 || TimePredicateBuilder.isTimeClass(type)) {

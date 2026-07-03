@@ -32,10 +32,9 @@ import org.springframework.security.core.context.SecurityContextHolder;
 /**
  * Created by rmpestano on 07/02/17.
  */
-public class GtUtils implements Serializable {
+public class GtDateUtils implements Serializable {
 
-	private static final Logger LOG =
-			LoggerFactory.getLogger(GtUtils.class);
+	private static final Logger LOG = LoggerFactory.getLogger(GtDateUtils.class);
 
 	/**
 	 * 
@@ -56,14 +55,11 @@ public class GtUtils implements Serializable {
 
 	public static final SimpleDateFormat SDF_SLASH_DMYHM = new SimpleDateFormat("dd/MM/yy HH:mm");
 
-	public static final SimpleDateFormat SDF_SLASH_DMYHMS =
-			new SimpleDateFormat("dd/MM/yy HH:mm:ss");
+	public static final SimpleDateFormat SDF_SLASH_DMYHMS = new SimpleDateFormat("dd/MM/yy HH:mm:ss");
 
-	public static final SimpleDateFormat SDF_SLASH_DMYYHM =
-			new SimpleDateFormat("dd/MM/yyyy HH:mm");
+	public static final SimpleDateFormat SDF_SLASH_DMYYHM = new SimpleDateFormat("dd/MM/yyyy HH:mm");
 
-	public static final SimpleDateFormat SDF_SLASH_DMYYHMS =
-			new SimpleDateFormat("dd/MM/yyyy HH:mm:ss");
+	public static final SimpleDateFormat SDF_SLASH_DMYYHMS = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss");
 
 	public static final SimpleDateFormat SDF_ISO_YYMD = new SimpleDateFormat("yyyyMMdd");
 
@@ -75,17 +71,12 @@ public class GtUtils implements Serializable {
 
 	public static final SimpleDateFormat SDF_MD = new SimpleDateFormat("MMdd");
 
-	public static final SimpleDateFormat SDF_SLASH_ISO_YYMDHM =
-			new SimpleDateFormat("yyyy/MM/dd HH:mm");
+	public static final SimpleDateFormat SDF_SLASH_ISO_YYMDHM = new SimpleDateFormat("yyyy/MM/dd HH:mm");
 
-	public static final SimpleDateFormat SDF_BAR_ISO_YYMDHMS =
-			new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+	public static final SimpleDateFormat SDF_BAR_ISO_YYMDHMS = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
-	public static final SimpleDateFormat[] DATE_FORMATS =
-			new SimpleDateFormat[] {SDF_SLASH_DMY, SDF_SLASH_DMYY,
-					SDF_SLASH_DMYHM, SDF_SLASH_DMYYHM, SDF_SLASH_DMYHMS, SDF_SLASH_DMYYHMS};
-
-
+	public static final SimpleDateFormat[] DATE_FORMATS = new SimpleDateFormat[] { SDF_SLASH_DMY, SDF_SLASH_DMYY,
+			SDF_SLASH_DMYHM, SDF_SLASH_DMYYHM, SDF_SLASH_DMYHMS, SDF_SLASH_DMYYHMS };
 
 	public static final DateTimeFormatter DTF_ISO_HMS = DateTimeFormatter.ofPattern("HHmmss");
 
@@ -99,28 +90,21 @@ public class GtUtils implements Serializable {
 
 	public static final DateTimeFormatter DTF_SLASH_DMY = DateTimeFormatter.ofPattern("dd/MM/yy");
 
-	public static final DateTimeFormatter DTF_SLASH_DMYY =
-			DateTimeFormatter.ofPattern("dd/MM/yyyy");
+	public static final DateTimeFormatter DTF_SLASH_DMYY = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
-	public static final DateTimeFormatter DTF_SLASH_DMYHM =
-			DateTimeFormatter.ofPattern("dd/MM/yy HH:mm");
+	public static final DateTimeFormatter DTF_SLASH_DMYHM = DateTimeFormatter.ofPattern("dd/MM/yy HH:mm");
 
-	public static final DateTimeFormatter DTF_SLASH_DMYHMS =
-			DateTimeFormatter.ofPattern("dd/MM/yy HH:mm:ss");
+	public static final DateTimeFormatter DTF_SLASH_DMYHMS = DateTimeFormatter.ofPattern("dd/MM/yy HH:mm:ss");
 
-	public static final DateTimeFormatter DTF_SLASH_DMYYHM =
-			DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+	public static final DateTimeFormatter DTF_SLASH_DMYYHM = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
 
-	public static final DateTimeFormatter DTF_SLASH_DMYYHMS =
-			DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
+	public static final DateTimeFormatter DTF_SLASH_DMYYHMS = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
 
-	public static final DateTimeFormatter DTF_ISO8601 =
-			DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss.SSSXXX");
+	public static final DateTimeFormatter DTF_ISO8601 = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss.SSSXXX");
 
 	public static final DateTimeFormatter DTF_ISO_YYMD = DateTimeFormatter.ofPattern("yyyyMMdd");
 
-	public static final DateTimeFormatter DTF_ISO_YYMDHMS =
-			DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
+	public static final DateTimeFormatter DTF_ISO_YYMDHMS = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
 
 	public static final DateTimeFormatter DTF_DMYY = DateTimeFormatter.ofPattern("ddMMyyyy");
 
@@ -128,26 +112,20 @@ public class GtUtils implements Serializable {
 
 	public static final DateTimeFormatter DTF_MD = DateTimeFormatter.ofPattern("MMdd");
 
-	public static final DateTimeFormatter DTF_SLASH_ISO_YYMDHM =
-			DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm");
+	public static final DateTimeFormatter DTF_SLASH_ISO_YYMDHM = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm");
 
-	public static final DateTimeFormatter DTF_BAR_ISO_YMD =
-			DateTimeFormatter.ofPattern("yy-MM-dd");
+	public static final DateTimeFormatter DTF_BAR_ISO_YMD = DateTimeFormatter.ofPattern("yy-MM-dd");
 
-	public static final DateTimeFormatter DTF_BAR_ISO_YYMD =
-			DateTimeFormatter.ofPattern("yyyy-MM-dd");
+	public static final DateTimeFormatter DTF_BAR_ISO_YYMD = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
-	public static final DateTimeFormatter DTF_BAR_ISO_YYMDHMS =
-			DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+	public static final DateTimeFormatter DTF_BAR_ISO_YYMDHMS = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
-	public static final DateTimeFormatter[] LOCAL_DATE_FORMATS =
-			new DateTimeFormatter[] {DTF_SLASH_DMY, DTF_SLASH_DMYY};
+	public static final DateTimeFormatter[] LOCAL_DATE_FORMATS = new DateTimeFormatter[] { DTF_SLASH_DMY,
+			DTF_SLASH_DMYY };
 
-	public static final DateTimeFormatter[] LOCAL_DATE_TIME_FORMATS =
-			new DateTimeFormatter[] {DTF_SLASH_DMYHM, DTF_SLASH_DMYHMS, DTF_SLASH_DMYYHM,
-					DTF_SLASH_DMYYHMS, DTF_ISO8601};
-
-
+	public static final DateTimeFormatter[] LOCAL_DATE_TIME_FORMATS = new DateTimeFormatter[] { DTF_SLASH_DMYHM,
+			DTF_SLASH_DMYHMS, DTF_SLASH_DMYYHM,
+			DTF_SLASH_DMYYHMS, DTF_ISO8601 };
 
 	public static final DecimalFormat DF_2E = new DecimalFormat("00");
 
@@ -159,8 +137,7 @@ public class GtUtils implements Serializable {
 
 	public static final DecimalFormat DF_2D = new DecimalFormat("0.00");
 
-	public static final NumberFormat CURRENCY_FORMAT =
-			NumberFormat.getCurrencyInstance(Locale.forLanguageTag("es-AR"));
+	public static final NumberFormat CURRENCY_FORMAT = NumberFormat.getCurrencyInstance(Locale.forLanguageTag("es-AR"));
 
 	public static final Date DEFAULT_DATE = new Date(0L);
 
@@ -231,7 +208,7 @@ public class GtUtils implements Serializable {
 
 	public static String[] separar(String descripcion, int largo, int delta) {
 		if (descripcion == null || descripcion.isEmpty()) {
-			return new String[] {""};
+			return new String[] { "" };
 		}
 
 		List<String> ret = new ArrayList<>();

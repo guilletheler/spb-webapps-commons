@@ -13,10 +13,10 @@ import java.util.function.BiConsumer;
 import java.util.function.BiPredicate;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.repository.CrudRepository;
-import com.gt.toolbox.spb.webapps.commons.infra.model.IWithId;
 
 public class CollectionsDtoUtils {
 
@@ -68,19 +68,13 @@ public class CollectionsDtoUtils {
 
     /**
      * Toma como base la colección base e incorpora o quita la colección toSynch
-     * 
-     * @param <E>
-     * @param <D>
-     * @param base
-     * @param toSynch
-     * @param converter
-     * @return
-     * @throws GtBackendException
      */
-    public static <E, D> Collection<E> synchronize(Collection<E> base, Collection<D> toSynch,
-            IDtoMapper<E, D> converter) {
+    public static <E, D, EL extends Collection<E>, DL extends Collection<D>> EL synchronize(EL base, DL toSynch,
+            BiPredicate<E, D> idComparator,
+            Function<D, E> toNew,
+            BiConsumer<D, E> update) {
 
-        List<E> toRemove = findToRemove(base, toSynch, converter);
+        List<E> toRemove = findToRemove(base, toSynch, idComparator);
 
         base.removeAll(toRemove);
 
@@ -88,51 +82,16 @@ public class CollectionsDtoUtils {
             for (D dto : toSynch) {
 
                 // Busco el dto en la colección de entidades
-                E entity = base.stream().filter(e -> converter.sameKey(e, dto)).findFirst()
+                E entity = base.stream().filter(e -> idComparator.test(e, dto)).findFirst()
                         .orElse(null);
 
                 if (entity == null) {
                     // si no está creo la entidad y la agrego a la lista
-                    entity = converter.toNewEntity(dto);
+                    entity = toNew.apply(dto);
                     base.add(entity);
                 } else {
                     // si está asigno los valores
-                    converter.toEntity(entity, dto);
-                }
-            }
-        }
-
-        return base;
-
-    }
-
-    /**
-     * Toma como base la colección base e incorpora o quita la colección toSynch
-     */
-    public static <E, D, EL extends Collection<E>, DL extends Collection<D>> EL synchronize(EL base,
-            DL toSynch,
-            BiPredicate<E, D> sameKey,
-            Function<D, E> toNewEntity,
-            BiConsumer<D, E> updateEntity) {
-
-        List<E> toRemove = findToRemove(base, toSynch, sameKey);
-
-        base.removeAll(toRemove);
-
-        if (toSynch != null) {
-            for (D dto : toSynch) {
-
-                // Busco el dto en la colección de entidades
-                E entity = base.stream().filter(e -> sameKey.test(e, dto)).findFirst()
-                        .orElse(null);
-
-                if (entity == null) {
-                    // si no está creo la entidad y la agrego a la lista
-                    entity = toNewEntity.apply(dto);
-                    base.add(entity);
-                } else {
-                    // si está asigno los valores
-                    updateEntity.accept(dto, entity);
+                    update.accept(dto, entity);
                 }
             }
         }
@@ -144,62 +103,37 @@ public class CollectionsDtoUtils {
      * Toma como base la colección base e incorpora o quita la colección toSynch
      */
     public static <E, D> Collection<E> synchronize(Collection<E> base, Collection<D> toSynch,
-            Function<E, D> toDto, Function<D, E> toNewEntity, BiConsumer<D, E> updateEntity) {
+            Function<E, D> toDto,
+            Function<D, E> toNew,
+            BiConsumer<D, E> update) {
 
-        BiPredicate<E, D> sameKey = (entity, dto) -> {
-            if (entity == null || dto == null) {
-                return false;
-            }
-            D entityDto = toDto.apply(entity);
-            if (entityDto == null) {
-                return false;
-            }
-            if (entityDto instanceof IWithId && dto instanceof IWithId) {
-                return Objects.equals(((IWithId<?>) entityDto).getId(), ((IWithId<?>) dto).getId());
-            }
-            return Objects.equals(entityDto, dto);
-        };
+        BiPredicate<E, D> idComparator = new ObjectsIdComparator<E, D>();
 
-        return synchronize(base, toSynch, sameKey, toNewEntity, updateEntity);
-    }
-
-    /**
-     * Toma como base la colección base e incorpora o quita la colección toSynch
-     * 
-     * @param <ID>
-     * @param <E>
-     * @param <D>
-     * @param base
-     * @param toSynch
-     * @param converter
-     * @param repo
-     * @return
-     */
-    public static <ID, E extends IWithId<ID>, D extends IWithId<ID>> Collection<E> synchronize(
-            Collection<E> base, Collection<D> toSynch,
-            IDtoMapper<E, D> converter, CrudRepository<E, ID> repo) {
-
-        return synchronize(base, toSynch, repo);
+        return synchronize(base, toSynch, idComparator, toNew, update);
     }
 
     /**
      * Toma como base la colección base e incorpora o quita la colección toSynch
      */
-    public static <ID, E extends IWithId<ID>, D extends IWithId<ID>> Collection<E> synchronize(
-            Collection<E> base, Collection<D> toSynch,
-            Function<E, D> toDto, CrudRepository<E, ID> repo) {
-
-        return synchronize(base, toSynch, repo);
-    }
-
-    /**
-     * Toma como base la colección base e incorpora o quita la colección toSynch
-     */
-    public static <ID, E extends IWithId<ID>, D extends IWithId<ID>> Collection<E> synchronize(
+    public static <ID, E, D> Collection<E> synchronize(
             Collection<E> base, Collection<D> toSynch,
             CrudRepository<E, ID> repo) {
+        var idComparator = new ObjectsIdComparator<E, D>();
+        var idResolver = new ObjectIdResolver<D, ID>();
 
-        List<E> toRemove = findEntitiesToRemove(base, toSynch);
+        return synchronize(base, toSynch, idComparator, idResolver, repo);
+    }
+
+    /**
+     * Toma como base la colección base e incorpora o quita la colección toSynch
+     */
+    public static <ID, E, D> Collection<E> synchronize(
+            Collection<E> base, Collection<D> toSynch,
+            BiPredicate<E, D> idComparator,
+            Function<D, ID> idResolver,
+            CrudRepository<E, ID> repo) {
+
+        List<E> toRemove = findEntitiesToRemove(base, toSynch, idComparator);
 
         base.removeAll(toRemove);
 
@@ -208,18 +142,18 @@ public class CollectionsDtoUtils {
 
                 // Busco el dto en la colección de entidades
 
-                E entity = base.stream().filter(e -> e.getId().equals(dto.getId())).findFirst()
+                E entity = base.stream().filter(e -> idComparator.test(e, dto)).findFirst()
                         .orElse(null);
 
                 if (entity == null) {
-                    var dtoId = dto.getId();
+                    var dtoId = idResolver.apply(dto);
                     if (dtoId != null) {
                         entity = repo.findById(dtoId).orElse(null);
                     }
                     if (entity != null) {
                         base.add(entity);
                     } else {
-                        LOG.warn("No se encontró la entidad con id {}", dto.getId());
+                        LOG.warn("No se encontró la entidad con id {}", dtoId);
                     }
                 }
             }
@@ -231,37 +165,14 @@ public class CollectionsDtoUtils {
 
     /**
      * Toma como base la colección base e incorpora o quita la colección toSynch
-     * 
-     * @param <E>
-     * @param <D>
-     * @param base
-     * @param toSynch
-     * @param converter
-     * @return
      */
     public static <E, D> List<E> findToRemove(Collection<E> base, Collection<D> toSynch,
-            IDtoMapper<E, D> converter) {
-        List<E> toRemove = new ArrayList<>();
-
-        for (E entity : base) {
-
-            if (toSynch.stream().noneMatch(dto -> converter.sameKey(entity, dto))) {
-                toRemove.add(entity);
-            }
-        }
-        return toRemove;
-    }
-
-    /**
-     * Toma como base la colección base e incorpora o quita la colección toSynch
-     */
-    public static <E, D> List<E> findToRemove(Collection<E> base, Collection<D> toSynch,
-            BiPredicate<E, D> sameKey) {
+            BiPredicate<E, D> idComparator) {
         List<E> toRemove = new ArrayList<>();
 
         if (base != null && toSynch != null) {
             for (E entity : base) {
-                if (toSynch.stream().noneMatch(dto -> sameKey.test(entity, dto))) {
+                if (toSynch.stream().noneMatch(dto -> idComparator.test(entity, dto))) {
                     toRemove.add(entity);
                 }
             }
@@ -272,30 +183,23 @@ public class CollectionsDtoUtils {
     /**
      * Toma como base la colección base e incorpora o quita la colección toSynch
      */
-    public static <E, D> List<E> findToRemove(Collection<E> base, Collection<D> toSynch,
-            Function<E, D> toDto) {
-        return findToRemove(base, toSynch, (entity, dto) -> {
-            if (entity == null || dto == null) {
-                return false;
-            }
-            D entityDto = toDto.apply(entity);
-            if (entityDto == null) {
-                return false;
-            }
-            if (entityDto instanceof IWithId && dto instanceof IWithId) {
-                return Objects.equals(((IWithId<?>) entityDto).getId(), ((IWithId<?>) dto).getId());
-            }
-            return Objects.equals(entityDto, dto);
-        });
+    public static <E, D> List<E> findToRemove(Collection<E> base, Collection<D> toSynch, Function<E, D> toDto) {
+        return findToRemove(base, toSynch, new ObjectsIdComparator<>());
     }
 
-    public static <ID, E extends IWithId<ID>, D extends IWithId<ID>> List<E> findEntitiesToRemove(
-            Collection<E> entityCollection, Collection<D> dtoCollection) {
+    public static <E, D> List<E> findEntitiesToRemove(Collection<E> entityCollection, Collection<D> dtoCollection) {
+        return findToRemove(entityCollection, dtoCollection, new ObjectsIdComparator<>());
+    }
+
+    public static <E, D> List<E> findEntitiesToRemove(
+            Collection<E> entityCollection, Collection<D> dtoCollection,
+            BiPredicate<E, D> idComparator) {
         List<E> toRemove = new ArrayList<>();
 
         for (E entity : entityCollection) {
 
-            if (dtoCollection.stream().noneMatch(dto -> entity.getId().equals(dto.getId()))) {
+            if (dtoCollection.stream()
+                    .noneMatch(dto -> idComparator.test(entity, dto))) {
                 toRemove.add(entity);
             }
         }
@@ -310,22 +214,10 @@ public class CollectionsDtoUtils {
      * @param map
      * @return
      */
-    public static <K, V> List<KeyValueDto<K, V>> of(Map<K, V> map) {
-        List<KeyValueDto<K, V>> list = new ArrayList<>();
-        map.entrySet().forEach(entry -> list.add(of(entry)));
+    public static <K, V> List<Entry<K, V>> of(Map<K, V> map) {
+        List<Entry<K, V>> list = new ArrayList<>();
+        map.entrySet().forEach(entry -> list.add(entry));
         return list;
-    }
-
-    /**
-     * Convierte un Entry<K, V> en un KeyValueDto<K, V>
-     * 
-     * @param <V>
-     * @param <K>
-     * @param entry
-     * @return
-     */
-    private static <V, K> KeyValueDto<K, V> of(Entry<K, V> entry) {
-        return new KeyValueDto<K, V>(entry.getKey(), entry.getValue());
     }
 
     /**
@@ -339,7 +231,7 @@ public class CollectionsDtoUtils {
      * @param toSynch
      * @return
      */
-    public static <K, V> Map<K, V> sinchronize(Map<K, V> base, List<KeyValueDto<K, V>> toSynch) {
+    public static <K, V> Map<K, V> synchronize(Map<K, V> base, List<Entry<K, V>> toSynch) {
         if (toSynch != null) {
 
             List<K> keysToRemove = base.entrySet().stream().filter(
@@ -368,7 +260,7 @@ public class CollectionsDtoUtils {
      * @param toSynch
      * @return
      */
-    public static <K, V> Map<K, V> sinchronize(Map<K, V> base, Map<K, V> toSynch) {
+    public static <K, V> Map<K, V> synchronize(Map<K, V> base, Map<K, V> toSynch) {
 
         if (toSynch != null) {
 
