@@ -5,7 +5,7 @@
 	<groupId>com.gt.toolbox</groupId>
 	<artifactId>spb-webapps-commons</artifactId>
 	<version>4.0.3</version>
-	<description>webapps commons para spring 3 y java 17</description>
+	<description>webapps commons para spring 4 y java 21</description>
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>

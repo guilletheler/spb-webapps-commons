@@ -24,6 +24,7 @@ import jakarta.persistence.criteria.JoinType;
 import jakarta.persistence.criteria.Path;
 import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Root;
+import jakarta.persistence.metamodel.Bindable.BindableType;
 
 
 public class QueryHelper {
@@ -144,8 +145,12 @@ public class QueryHelper {
 
 				}
 
-				ret = buildPredicate(path, builder, filter.getValue(),
-						Collection.class.isAssignableFrom(curClass));
+				if (curClass.getAnnotation(Entity.class) != null) {
+					ret = buildEntityPredicate(path, builder, curClass, filter.getValue());
+				} else {
+					ret = buildPredicate(path, builder, filter.getValue(),
+							Collection.class.isAssignableFrom(curClass));
+				}
 
 			}
 		}
@@ -282,6 +287,10 @@ public class QueryHelper {
 			} else if (TimePredicateBuilder.isTimeClass(path.getJavaType())) {
 				replacePredicate = false;
 				predicate = TimePredicateBuilder.buildPredicate(builder, path, value);
+			} else if (path.getJavaType() != null && path.getJavaType().isAnnotationPresent(Entity.class)) {
+				replacePredicate = false;
+			} else if (path.getModel() != null && path.getModel().getBindableType() == BindableType.ENTITY_TYPE) {
+				replacePredicate = false;
 			}
 
 			if (predicate == null && replacePredicate) {
@@ -290,6 +299,75 @@ public class QueryHelper {
 		}
 
 		return predicate;
+	}
+
+	private static Predicate buildEntityPredicate(Path<?> path, CriteriaBuilder builder,
+			Class<?> entityClass, String value) {
+
+		if (value == null || value.isBlank()) {
+			return null;
+		}
+
+		List<Predicate> predicates = new ArrayList<>();
+
+		try {
+			Method m = entityClass.getMethod("getNombre");
+			if (m != null && String.class.isAssignableFrom(m.getReturnType())) {
+				Predicate p = StringPredicateBuilder.buildPredicate(builder, path.get("nombre"), value);
+				if (p != null) {
+					predicates.add(p);
+				}
+			}
+		} catch (NoSuchMethodException | SecurityException ignored) {
+		}
+
+		try {
+			Method m = entityClass.getMethod("getUsername");
+			if (m != null && String.class.isAssignableFrom(m.getReturnType())) {
+				Predicate p = StringPredicateBuilder.buildPredicate(builder, path.get("username"), value);
+				if (p != null) {
+					predicates.add(p);
+				}
+			}
+		} catch (NoSuchMethodException | SecurityException ignored) {
+		}
+
+		try {
+			Method m = entityClass.getMethod("getDescripcion");
+			if (m != null && String.class.isAssignableFrom(m.getReturnType())) {
+				Predicate p = StringPredicateBuilder.buildPredicate(builder, path.get("descripcion"), value);
+				if (p != null) {
+					predicates.add(p);
+				}
+			}
+		} catch (NoSuchMethodException | SecurityException ignored) {
+		}
+
+		try {
+			Method m = entityClass.getMethod("getCodigo");
+			if (m != null) {
+				if (String.class.isAssignableFrom(m.getReturnType())) {
+					Predicate p = StringPredicateBuilder.buildPredicate(builder, path.get("codigo"), value);
+					if (p != null) {
+						predicates.add(p);
+					}
+				} else if (IntegerPredicateBuilder.isIntegerClass(m.getReturnType())) {
+					Predicate p = IntegerPredicateBuilder.buildPredicate(builder, path.get("codigo"), value);
+					if (p != null) {
+						predicates.add(p);
+					}
+				}
+			}
+		} catch (NoSuchMethodException | SecurityException ignored) {
+		}
+
+		if (predicates.isEmpty()) {
+			return null;
+		} else if (predicates.size() == 1) {
+			return predicates.get(0);
+		} else {
+			return builder.or(predicates.toArray(new Predicate[0]));
+		}
 	}
 
 	public static Predicate alwaysTrue(CriteriaBuilder builder) {
