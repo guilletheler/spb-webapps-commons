@@ -35,30 +35,38 @@ public class QueryHelper {
 	public static <T> Specification<T> getFilterSpecification(FilterMeta filter) {
 
 		return (Root<T> root, CriteriaQuery<?> query, CriteriaBuilder builder) -> {
-			// query.distinct(true);
-
-			return buildPredicate(root, builder, filter);
+			return buildPredicate(root, query, builder, filter);
 		};
 	}
 
 	public static <T> Predicate buildPredicate(Root<T> root, CriteriaBuilder builder,
 			FilterMeta filter) {
-		return buildPredicate(root, builder, filter, new ArrayList<>());
+		return buildPredicate(root, null, builder, filter, new ArrayList<>());
+	}
+
+	public static <T> Predicate buildPredicate(Root<T> root, CriteriaQuery<?> query, CriteriaBuilder builder,
+			FilterMeta filter) {
+		return buildPredicate(root, query, builder, filter, new ArrayList<>());
 	}
 
 	public static <T> Predicate buildPredicate(Path<?> path, CriteriaBuilder builder,
 			FilterMeta filter) {
-		return buildPredicate(path, builder, filter, new ArrayList<>());
+		return buildPredicate(path, null, builder, filter, new ArrayList<>());
 	}
 
-	private static <T> Predicate buildPredicateAgrupador(Path<?> path, CriteriaBuilder builder,
+	public static <T> Predicate buildPredicate(Path<?> path, CriteriaQuery<?> query, CriteriaBuilder builder,
+			FilterMeta filter) {
+		return buildPredicate(path, query, builder, filter, new ArrayList<>());
+	}
+
+	private static <T> Predicate buildPredicateAgrupador(Path<?> path, CriteriaQuery<?> query, CriteriaBuilder builder,
 			FilterMeta filter,
 			List<String> pathAgregados) {
 
 		Predicate ret = null;
 
 		for (var child : filter.getChildrens()) {
-			Predicate tmpPredicate = buildPredicate(path, builder, child, pathAgregados);
+			Predicate tmpPredicate = buildPredicate(path, query, builder, child, pathAgregados);
 
 			if (tmpPredicate != null) {
 
@@ -82,14 +90,14 @@ public class QueryHelper {
 		return ret;
 	}
 
-	private static <T> Predicate buildPredicate(Path<?> path, CriteriaBuilder builder,
+	private static <T> Predicate buildPredicate(Path<?> path, CriteriaQuery<?> query, CriteriaBuilder builder,
 			FilterMeta filter,
 			List<String> pathAgregados) {
 
 		Predicate ret = null;
 
 		if (filter.getChildrens() != null && !filter.getChildrens().isEmpty()) {
-			ret = buildPredicateAgrupador(path, builder, filter, pathAgregados);
+			ret = buildPredicateAgrupador(path, query, builder, filter, pathAgregados);
 		} else {
 			// valor directo
 
@@ -148,7 +156,7 @@ public class QueryHelper {
 				if (curClass.getAnnotation(Entity.class) != null) {
 					ret = buildEntityPredicate(path, builder, curClass, filter.getValue());
 				} else {
-					ret = buildPredicate(path, builder, filter.getValue(),
+					ret = buildPredicate(query, path, builder, filter.getValue(),
 							Collection.class.isAssignableFrom(curClass));
 				}
 
@@ -201,24 +209,29 @@ public class QueryHelper {
 
 	public static <T> Predicate buildPredicate(Path<?> path, CriteriaBuilder builder,
 			String value, boolean isCollection) {
+		return buildPredicate(null, path, builder, value, isCollection);
+	}
+
+	public static <T> Predicate buildPredicate(CriteriaQuery<?> query, Path<?> path, CriteriaBuilder builder,
+			String value, boolean isCollection) {
 
 		Predicate ret = null;
 
 		var filterMeta = FilterMeta.fromExpr(value);
 
-		ret = buildFiltermetaPredicate(path, builder, filterMeta, isCollection);
+		ret = buildFiltermetaPredicate(query, path, builder, filterMeta, isCollection);
 
 		return ret;
 	}
 
-	private static <T> Predicate buildFiltermetaPredicate(Path<?> path, CriteriaBuilder builder,
+	private static <T> Predicate buildFiltermetaPredicate(CriteriaQuery<?> query, Path<?> path, CriteriaBuilder builder,
 			FilterMeta filterMeta, boolean isCollection) {
 		Predicate ret = null;
 		if (filterMeta.getChildrens() != null && !filterMeta.getChildrens().isEmpty()) {
 			switch (filterMeta.getOperator().toUpperCase()) {
 				case "OR":
 					var ors = filterMeta.getChildrens().stream().map(
-							fm -> buildFiltermetaPredicate(path, builder, fm, isCollection))
+							fm -> buildFiltermetaPredicate(query, path, builder, fm, isCollection))
 							.filter(pr -> pr != null)
 							.toList();
 					if (!ors.isEmpty()) {
@@ -227,7 +240,7 @@ public class QueryHelper {
 					break;
 				case "AND":
 					var ands = filterMeta.getChildrens().stream().map(
-							fm -> buildFiltermetaPredicate(path, builder, fm,
+							fm -> buildFiltermetaPredicate(query, path, builder, fm,
 									isCollection))
 							.filter(pr -> pr != null)
 							.toList();
@@ -236,14 +249,14 @@ public class QueryHelper {
 					}
 					break;
 				case "NOT":
-					var not = buildFiltermetaPredicate(path, builder,
+					var not = buildFiltermetaPredicate(query, path, builder,
 							filterMeta.getChildrens().get(0), isCollection);
 					ret = builder.not(not);
 					break;
 
 				default:
 					if (isCollection) {
-						ret = CollectionPredicateBuilder.buildPredicate(builder, path,
+						ret = CollectionPredicateBuilder.buildPredicate(query, builder, path,
 								filterMeta.getValue());
 					} else {
 						ret = buildPredicate(path, builder, filterMeta.getValue());
@@ -253,7 +266,7 @@ public class QueryHelper {
 		} else {
 			if (isCollection) {
 				ret = CollectionPredicateBuilder
-						.buildPredicate(builder, path, filterMeta.getValue());
+						.buildPredicate(query, builder, path, filterMeta.getValue());
 			} else {
 				ret = buildPredicate(path, builder, filterMeta.getValue());
 			}

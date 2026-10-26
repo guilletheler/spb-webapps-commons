@@ -86,7 +86,7 @@ public class PageRequestHelper {
     public static <T> Specification<T> toSpecification(FilterMeta filters) {
 
         return (Root<T> root, CriteriaQuery<?> query, CriteriaBuilder builder) -> {
-            return buildPredicate(filters, root, builder);
+            return buildPredicate(filters, root, query, builder);
         };
     }
 
@@ -94,31 +94,32 @@ public class PageRequestHelper {
     public static <T> Specification<T> toSpecification(PageRequest pageRequest) {
 
         return (Root<T> root, CriteriaQuery<?> query, CriteriaBuilder builder) -> {
-            return buildPredicate(pageRequest, root, builder);
+            return buildPredicate(pageRequest, root, query, builder);
         };
     }
 
     private static <T> Predicate buildPredicate(PageRequest pageRequest, Root<T> root,
-            CriteriaBuilder builder) {
+            CriteriaQuery<?> query, CriteriaBuilder builder) {
         return Optional.ofNullable(pageRequest)
                 .map(pr -> pr.getFilter())
-                .map(filter -> buildPredicate(filter, root, builder))
+                .map(filter -> buildPredicate(filter, root, query, builder))
                 .orElse(QueryHelper.alwaysTrue(builder));
     }
 
     private static <T> Predicate buildPredicate(FilterMeta filter, Root<T> root,
-            CriteriaBuilder builder) {
+            CriteriaQuery<?> query, CriteriaBuilder builder) {
         return Optional.ofNullable(filter)
-                .map(f -> buildPredicate(root, builder, f))
+                .map(f -> QueryHelper.buildPredicate(root, query, builder, f))
                 .orElse(QueryHelper.alwaysTrue(builder));
-
     }
 
-    private static <T> Predicate buildPredicate(Root<T> root, CriteriaBuilder builder,
-            FilterMeta filter) {
+    private static <T> Predicate buildPredicate(PageRequest pageRequest, Root<T> root,
+            CriteriaBuilder builder) {
+        return buildPredicate(pageRequest, root, null, builder);
+    }
 
-        Predicate ret = QueryHelper.buildPredicate(root, builder, filter);
-
-        return ret;
+    private static <T> Predicate buildPredicate(FilterMeta filter, Root<T> root,
+            CriteriaBuilder builder) {
+        return buildPredicate(filter, root, null, builder);
     }
 }
