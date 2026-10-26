@@ -152,7 +152,7 @@ public class SpecificationArgumentResolver implements HandlerMethodArgumentResol
                             cleanVal = value.substring(1, value.length() - 1);
                         }
 
-                        Predicate pred = buildPredicate(path, cb, fieldType, operator, cleanVal, wasQuoted,
+                        Predicate pred = buildPredicate(query, path, cb, fieldType, operator, cleanVal, wasQuoted,
                                 isCollection);
 
                         return pred;
@@ -253,7 +253,7 @@ public class SpecificationArgumentResolver implements HandlerMethodArgumentResol
         return m;
     }
 
-    private static Predicate buildPredicate(Path<?> path, CriteriaBuilder cb, Class<?> fieldType, String operator,
+    private static Predicate buildPredicate(CriteriaQuery<?> query, Path<?> path, CriteriaBuilder cb, Class<?> fieldType, String operator,
             String value, boolean wasQuoted, boolean isCollection) {
         Predicate ret = null;
         if (operator.equals("=in=") || operator.equals("=out=")) {
@@ -271,7 +271,7 @@ public class SpecificationArgumentResolver implements HandlerMethodArgumentResol
                 if (partQuoted) {
                     partClean = trimmed.substring(1, trimmed.length() - 1);
                 }
-                Predicate single = buildSinglePredicate(path, cb, fieldType, "==", partClean, partQuoted, isCollection);
+                Predicate single = buildSinglePredicate(query, path, cb, fieldType, "==", partClean, partQuoted, isCollection);
                 if (single != null) {
                     orPredicates.add(single);
                 }
@@ -280,7 +280,7 @@ public class SpecificationArgumentResolver implements HandlerMethodArgumentResol
                 ret = cb.or(orPredicates.toArray(new Predicate[0]));
             }
         } else {
-            ret = buildSinglePredicate(path, cb, fieldType, operator, value, wasQuoted, isCollection);
+            ret = buildSinglePredicate(query, path, cb, fieldType, operator, value, wasQuoted, isCollection);
         }
 
         if (ret != null && (operator.equals("!=") || operator.equals("=out="))) {
@@ -290,12 +290,12 @@ public class SpecificationArgumentResolver implements HandlerMethodArgumentResol
         return ret;
     }
 
-    private static Predicate buildSinglePredicate(Path<?> path, CriteriaBuilder cb, Class<?> fieldType, String operator,
+    private static Predicate buildSinglePredicate(CriteriaQuery<?> query, Path<?> path, CriteriaBuilder cb, Class<?> fieldType, String operator,
             String cleanVal, boolean wasQuoted, boolean isCollection) {
         String mappedExpr = mapSingleValue(fieldType, operator, cleanVal, wasQuoted);
 
         if (isCollection) {
-            return CollectionPredicateBuilder.buildPredicate(cb, path, mappedExpr);
+            return CollectionPredicateBuilder.buildPredicate(query, cb, path, mappedExpr);
         }
 
         Predicate predicate = null;
