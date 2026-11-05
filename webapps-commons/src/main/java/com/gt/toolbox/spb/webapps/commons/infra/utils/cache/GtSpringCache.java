@@ -7,15 +7,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.cache.Cache;
 import org.springframework.cache.support.SimpleValueWrapper;
-import org.springframework.lang.NonNull;
-import org.springframework.lang.Nullable;
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 import lombok.Getter;
-
 
 public class GtSpringCache<V> implements Cache {
 
-    private static final Logger LOG =
-            LoggerFactory.getLogger(GtSpringCache.class);
+    private static final Logger LOG = LoggerFactory.getLogger(GtSpringCache.class);
 
     private final GtCache<Object, V> store;
 
@@ -87,7 +85,6 @@ public class GtSpringCache<V> implements Cache {
         var vValue = (V) value;
         store.put(key, vValue);
     }
-
 
     @Override
     public void evict(@NonNull Object key) {

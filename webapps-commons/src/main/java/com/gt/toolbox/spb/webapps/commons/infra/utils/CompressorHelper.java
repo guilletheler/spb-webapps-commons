@@ -12,8 +12,8 @@ import org.tukaani.xz.LZMA2Options;
 import org.tukaani.xz.XZInputStream;
 import org.tukaani.xz.XZOutputStream;
 import org.xerial.snappy.Snappy;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 
 /**
  * A comprehensive utility class for object serialization, compression, and encoding.
@@ -52,8 +52,7 @@ public final class CompressorHelper {
     }
 
     // ObjectMapper is thread-safe. It's configured to handle Java 8 time types.
-    private static final ObjectMapper objectMapper = new ObjectMapper()
-            .registerModule(new JavaTimeModule());
+    private static final ObjectMapper objectMapper = JsonMapper.builder().build();
 
     /**
      * Private constructor to prevent instantiation of this utility class.

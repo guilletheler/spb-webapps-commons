@@ -1,6 +1,5 @@
 package com.gt.toolbox.spb.webapps.commons.infra.dto;
 
-import java.io.IOException;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -8,12 +7,14 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeParseException;
 import java.util.Objects;
-import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.core.JsonToken;
-import com.fasterxml.jackson.databind.DeserializationContext;
-import com.fasterxml.jackson.databind.JsonDeserializer;
 
-public class FlexibleZonedDateTimeDeserializer extends JsonDeserializer<ZonedDateTime> {
+import tools.jackson.core.JacksonException;
+import tools.jackson.core.JsonParser;
+import tools.jackson.core.JsonToken;
+import tools.jackson.databind.DeserializationContext;
+import tools.jackson.databind.ValueDeserializer;
+
+public class FlexibleZonedDateTimeDeserializer extends ValueDeserializer<ZonedDateTime> {
 
     private final ZoneId defaultZoneId;
 
@@ -26,12 +27,12 @@ public class FlexibleZonedDateTimeDeserializer extends JsonDeserializer<ZonedDat
     }
 
     @Override
-    public ZonedDateTime deserialize(JsonParser p, DeserializationContext ctxt) throws IOException {
+    public ZonedDateTime deserialize(JsonParser p, DeserializationContext ctxt) throws JacksonException {
         if (p.hasToken(JsonToken.VALUE_NUMBER_INT)) {
             return Instant.ofEpochMilli(p.getLongValue()).atZone(defaultZoneId);
         }
 
-        var text = p.getText();
+        var text = p.getString();
         if (text == null || text.isBlank()) {
             return null;
         }

@@ -5,21 +5,22 @@
 	<groupId>com.gt.toolbox</groupId>
 	<artifactId>spb-webapps-commons</artifactId>
 	<version>5.0.1</version>
-	<description>webapps commons para spring 3 y java 17</description>
+	<description>webapps commons para spring y java</description>
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-		<java.version>25</java.version>
+		<!-- No podemos ir a java 25 por hubcobros -->
+		<!-- el docker prod es viejo y solo corre hasta el 21 -->
+		<java.version>21</java.version>
 		<maven.compiler.source>${java.version}</maven.compiler.source>
 		<maven.compiler.target>${java.version}</maven.compiler.target>
 		<apache.commons.lang3.version>3.20.0</apache.commons.lang3.version>
 		<apache.commons.collections4.version>4.5.0</apache.commons.collections4.version>
-		<spring.data.jpa.version>4.1.1</spring.data.jpa.version>
-		<spring.security.core.version>7.1.1</spring.security.core.version>
+		<spring.data.jpa.version>4.1.2</spring.data.jpa.version>
+		<spring.security.core.version>7.1.2</spring.security.core.version>
 		<jakarta.persistence.api.version>3.2.0</jakarta.persistence.api.version>
 		<lombok.version>1.18.48</lombok.version>
-		<jackson.version>2.22.3</jackson.version>
-		<jackson.annotations.version>2.22</jackson.annotations.version>
+		<jackson.version>3.1.7</jackson.version>
 		<junit-bom.version>5.13.4</junit-bom.version>
 		<snappy.version>1.1.10.7</snappy.version>
 		<tukaani.xz.version>1.9</tukaani.xz.version>
@@ -77,23 +78,12 @@
 			<artifactId>jakarta.persistence-api</artifactId>
 			<version>${jakarta.persistence.api.version}</version>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/com.fasterxml.jackson.core/jackson-annotations -->
+		<!-- https://mvnrepository.com/artifact/tools.jackson.core/jackson-databind -->
 		<dependency>
-			<groupId>com.fasterxml.jackson.core</groupId>
-			<artifactId>jackson-annotations</artifactId>
-			<version>${jackson.annotations.version}</version>
-			<scope>provided</scope>
-		</dependency>
-		<dependency>
-			<groupId>com.fasterxml.jackson.core</groupId>
+			<groupId>tools.jackson.core</groupId>
 			<artifactId>jackson-databind</artifactId>
 			<version>${jackson.version}</version>
 			<scope>provided</scope>
-		</dependency>
-		<dependency>
-			<groupId>com.fasterxml.jackson.datatype</groupId>
-			<artifactId>jackson-datatype-jsr310</artifactId>
-			<version>${jackson.version}</version>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/javassist/javassist -->
 		<!-- https://mvnrepository.com/artifact/net.bytebuddy/byte-buddy-dep -->

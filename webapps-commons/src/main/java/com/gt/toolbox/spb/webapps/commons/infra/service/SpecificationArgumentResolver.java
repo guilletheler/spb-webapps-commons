@@ -12,8 +12,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.core.MethodParameter;
 import org.springframework.core.ResolvableType;
 import org.springframework.data.jpa.domain.Specification;
-import org.springframework.lang.NonNull;
-import org.springframework.lang.Nullable;
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 import org.springframework.web.bind.support.WebDataBinderFactory;
 import org.springframework.web.context.request.NativeWebRequest;
 import org.springframework.web.method.support.HandlerMethodArgumentResolver;
@@ -41,6 +41,7 @@ public class SpecificationArgumentResolver implements HandlerMethodArgumentResol
     }
 
     @Override
+    @Nullable
     public Object resolveArgument(@NonNull MethodParameter parameter,
             @Nullable ModelAndViewContainer mavContainer,
             @NonNull NativeWebRequest webRequest,
@@ -253,7 +254,8 @@ public class SpecificationArgumentResolver implements HandlerMethodArgumentResol
         return m;
     }
 
-    private static Predicate buildPredicate(CriteriaQuery<?> query, Path<?> path, CriteriaBuilder cb, Class<?> fieldType, String operator,
+    private static Predicate buildPredicate(CriteriaQuery<?> query, Path<?> path, CriteriaBuilder cb,
+            Class<?> fieldType, String operator,
             String value, boolean wasQuoted, boolean isCollection) {
         Predicate ret = null;
         if (operator.equals("=in=") || operator.equals("=out=")) {
@@ -271,7 +273,8 @@ public class SpecificationArgumentResolver implements HandlerMethodArgumentResol
                 if (partQuoted) {
                     partClean = trimmed.substring(1, trimmed.length() - 1);
                 }
-                Predicate single = buildSinglePredicate(query, path, cb, fieldType, "==", partClean, partQuoted, isCollection);
+                Predicate single = buildSinglePredicate(query, path, cb, fieldType, "==", partClean, partQuoted,
+                        isCollection);
                 if (single != null) {
                     orPredicates.add(single);
                 }
@@ -290,7 +293,8 @@ public class SpecificationArgumentResolver implements HandlerMethodArgumentResol
         return ret;
     }
 
-    private static Predicate buildSinglePredicate(CriteriaQuery<?> query, Path<?> path, CriteriaBuilder cb, Class<?> fieldType, String operator,
+    private static Predicate buildSinglePredicate(CriteriaQuery<?> query, Path<?> path, CriteriaBuilder cb,
+            Class<?> fieldType, String operator,
             String cleanVal, boolean wasQuoted, boolean isCollection) {
         String mappedExpr = mapSingleValue(fieldType, operator, cleanVal, wasQuoted);
 
